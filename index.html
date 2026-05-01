@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#7c3aed">
+  <meta name="theme-color" content="#4f46e5">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>FitTracker - ダイエット・筋トレ管理</title>
@@ -13,12 +13,13 @@
     @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&display=swap');
 
     :root {
-      --c-purple: #7c3aed;
-      --c-pink:   #ec4899;
-      --c-orange: #f97316;
-      --c-green:  #10b981;
-      --c-blue:   #3b82f6;
+      --c-primary: #4f46e5;
+      --c-food:    #d97706;
+      --c-teal:    #0d9488;
+      --c-blue:    #2563eb;
+      --c-slate:   #64748b;
       --nav-h:    72px;
+      --safe-top:    env(safe-area-inset-top, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
@@ -31,7 +32,7 @@
 
     body {
       font-family: 'M PLUS Rounded 1c', 'Segoe UI', system-ui, sans-serif;
-      background: #f0eeff;
+      background: #f1f5f9;
       overscroll-behavior: none;
     }
 
@@ -65,12 +66,12 @@
     @media (min-width: 769px) {
       ::-webkit-scrollbar { width: 4px; height: 4px; }
       ::-webkit-scrollbar-track { background: transparent; }
-      ::-webkit-scrollbar-thumb { background: #c4b5fd; border-radius: 99px; }
+      ::-webkit-scrollbar-thumb { background: #a5b4fc; border-radius: 99px; }
     }
 
     /* ── Sidebar (desktop) ── */
     .sidebar-bg {
-      background: linear-gradient(160deg, #2d1b69 0%, #6d28d9 45%, #c026d3 100%);
+      background: linear-gradient(160deg, #1e1b4b 0%, #312e81 55%, #4338ca 100%);
     }
     .sidebar-link { transition: all 0.18s; border-radius: 12px; }
     .sidebar-link.active {
@@ -97,7 +98,7 @@
     .card {
       background: white;
       border-radius: 24px;
-      box-shadow: 0 2px 16px rgba(109,40,217,0.07);
+      box-shadow: 0 2px 16px rgba(51,65,85,0.08);
     }
     .stat-card-pop {
       border-radius: 22px;
@@ -111,21 +112,21 @@
     }
     .stat-card-pop:active { transform: scale(0.97); }
 
-    .sc-purple { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); box-shadow: 0 8px 24px rgba(124,58,237,0.35); }
-    .sc-orange { background: linear-gradient(135deg, #ea580c 0%, #f97316 100%); box-shadow: 0 8px 24px rgba(234,88,12,0.35); }
-    .sc-red    { background: linear-gradient(135deg, #e11d48 0%, #f43f5e 100%); box-shadow: 0 8px 24px rgba(225,29,72,0.35); }
-    .sc-green  { background: linear-gradient(135deg, #059669 0%, #0d9488 100%); box-shadow: 0 8px 24px rgba(5,150,105,0.35); }
-    .sc-blue   { background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); box-shadow: 0 8px 24px rgba(37,99,235,0.30); }
-    .sc-surplus{ background: linear-gradient(135deg, #f97316 0%, #ef4444 100%); box-shadow: 0 8px 24px rgba(249,115,22,0.35); }
-    .sc-deficit{ background: linear-gradient(135deg, #059669 0%, #06b6d4 100%); box-shadow: 0 8px 24px rgba(5,150,105,0.35); }
+    .sc-purple { background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%); box-shadow: 0 8px 24px rgba(67,56,202,0.30); }
+    .sc-orange { background: linear-gradient(135deg, #b45309 0%, #d97706 100%); box-shadow: 0 8px 24px rgba(180,83,9,0.28); }
+    .sc-red    { background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%); box-shadow: 0 8px 24px rgba(13,148,136,0.28); }
+    .sc-green  { background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%); box-shadow: 0 8px 24px rgba(29,78,216,0.28); }
+    .sc-blue   { background: linear-gradient(135deg, #475569 0%, #64748b 100%); box-shadow: 0 8px 24px rgba(71,85,105,0.25); }
+    .sc-surplus{ background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%); box-shadow: 0 8px 24px rgba(220,38,38,0.28); }
+    .sc-deficit{ background: linear-gradient(135deg, #059669 0%, #10b981 100%); box-shadow: 0 8px 24px rgba(5,150,105,0.28); }
 
     /* ── Buttons ── */
     .btn-primary {
-      background: linear-gradient(135deg, #7c3aed, #ec4899);
+      background: linear-gradient(135deg, #4338ca, #4f46e5);
       color: white; border: none;
       border-radius: 14px;
       transition: all 0.2s;
-      box-shadow: 0 4px 14px rgba(124,58,237,0.35);
+      box-shadow: 0 4px 14px rgba(67,56,202,0.30);
       -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
@@ -133,7 +134,7 @@
     @media (hover: hover) {
       .btn-primary:hover {
         transform: translateY(-1px);
-        box-shadow: 0 6px 20px rgba(124,58,237,0.45);
+        box-shadow: 0 6px 20px rgba(67,56,202,0.40);
       }
     }
 
@@ -146,21 +147,21 @@
     }
     input:focus, select:focus, textarea:focus {
       outline: none;
-      border-color: #a855f7 !important;
-      box-shadow: 0 0 0 3px rgba(168,85,247,0.18);
+      border-color: #6366f1 !important;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
     }
 
     /* ── Tabs ── */
     .pop-tab-active {
-      background: linear-gradient(135deg, #7c3aed, #ec4899) !important;
+      background: linear-gradient(135deg, #4338ca, #4f46e5) !important;
       color: white !important;
       border-radius: 99px !important;
-      box-shadow: 0 3px 10px rgba(124,58,237,0.35);
+      box-shadow: 0 3px 10px rgba(67,56,202,0.30);
     }
 
     /* ── Chat ── */
-    .chat-user-msg { background: linear-gradient(135deg, #7c3aed, #ec4899); color: white; border-radius: 20px 20px 4px 20px; }
-    .chat-ai-msg   { background: white; border: 1px solid #ede9fe; color: #1e293b; border-radius: 20px 20px 20px 4px; box-shadow: 0 2px 8px rgba(109,40,217,0.08); }
+    .chat-user-msg { background: linear-gradient(135deg, #4338ca, #4f46e5); color: white; border-radius: 20px 20px 4px 20px; }
+    .chat-ai-msg   { background: white; border: 1px solid #e0e7ff; color: #1e293b; border-radius: 20px 20px 20px 4px; box-shadow: 0 2px 8px rgba(67,56,202,0.07); }
 
     /* ── Page Banners (full-bleed on mobile) ── */
     .page-banner {
@@ -187,20 +188,23 @@
       border-radius: 50%;
       pointer-events: none;
     }
-    /* Mobile: edge-to-edge banners (no border-radius, handled by wrapper) */
+    /* Mobile: edge-to-edge banners + safe area top padding */
     @media (max-width: 768px) {
-      .page-banner { border-radius: 0 0 28px 28px; }
+      .page-banner {
+        border-radius: 0 0 28px 28px;
+        padding-top: calc(24px + var(--safe-top));
+      }
     }
     @media (min-width: 769px) {
       .page-banner { border-radius: 24px; }
     }
 
-    .banner-body    { background: linear-gradient(135deg, #7c3aed, #a855f7); }
-    .banner-meals   { background: linear-gradient(135deg, #ea580c, #f97316); }
-    .banner-workout { background: linear-gradient(135deg, #059669, #0d9488); }
-    .banner-progress{ background: linear-gradient(135deg, #2563eb, #7c3aed); }
-    .banner-ai      { background: linear-gradient(135deg, #c026d3, #7c3aed); }
-    .banner-settings{ background: linear-gradient(135deg, #475569, #334155); }
+    .banner-body    { background: linear-gradient(135deg, #312e81, #4f46e5); }
+    .banner-meals   { background: linear-gradient(135deg, #92400e, #b45309); }
+    .banner-workout { background: linear-gradient(135deg, #134e4a, #0d9488); }
+    .banner-progress{ background: linear-gradient(135deg, #1e3a5f, #2563eb); }
+    .banner-ai      { background: linear-gradient(135deg, #312e81, #4f46e5); }
+    .banner-settings{ background: linear-gradient(135deg, #1e293b, #475569); }
 
     /* ── Floating Mobile Nav ── */
     #mobile-nav {
@@ -249,7 +253,7 @@
       white-space: nowrap;
     }
     .mob-item.mob-active {
-      background: linear-gradient(135deg, #7c3aed, #ec4899);
+      background: linear-gradient(135deg, #4338ca, #4f46e5);
     }
     .mob-item.mob-active .mob-label {
       color: white;
@@ -298,7 +302,7 @@
           <div class="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center shadow-inner text-white"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/></svg></div>
           <div>
             <h1 class="text-base font-black leading-tight tracking-wide">FitTracker</h1>
-            <p class="text-xs text-purple-200 font-medium">ダイエット・筋トレ管理</p>
+            <p class="text-xs text-indigo-200 font-medium">ダイエット・筋トレ管理</p>
           </div>
         </div>
       </div>
@@ -375,7 +379,7 @@
 
   <!-- Toast Notification -->
   <div id="toast" class="fixed top-4 right-4 z-50 hidden">
-    <div style="background:linear-gradient(135deg,#7c3aed,#ec4899)" class="text-white px-4 py-2.5 rounded-2xl text-sm shadow-lg flex items-center gap-2">
+    <div style="background:linear-gradient(135deg,#4338ca,#4f46e5)" class="text-white px-4 py-2.5 rounded-2xl text-sm shadow-lg flex items-center gap-2">
       <span id="toast-icon">✓</span>
       <span id="toast-msg"></span>
     </div>
@@ -611,7 +615,7 @@ function renderDashboard() {
   document.getElementById('page-content').innerHTML = `
     <div class="page">
       <!-- Header Banner (full bleed on mobile) -->
-      <div class="page-banner" style="background:linear-gradient(135deg,#7c3aed,#ec4899,#f97316)">
+      <div class="page-banner" style="background:linear-gradient(135deg,#1e1b4b,#312e81,#4338ca)">
         <div class="flex items-center justify-between">
           <div>
             <div class="text-2xl font-black">${greeting()}${escHtml(name)}</div>
@@ -694,8 +698,8 @@ function renderDashboard() {
         <!-- Weight Chart -->
         <div class="card p-5 md:col-span-3">
           <div class="flex items-center justify-between mb-5">
-            <h3 class="font-bold text-gray-700 flex items-center gap-2">${icon('trendingUp',16,'text-purple-500')} 体重推移（直近14日）</h3>
-            <button onclick="navigate('progress')" class="text-xs text-purple-500 font-semibold flex items-center gap-1">詳細 ${icon('chevronRight',14)}</button>
+            <h3 class="font-bold text-gray-700 flex items-center gap-2">${icon('trendingUp',16,'text-indigo-500')} 体重推移（直近14日）</h3>
+            <button onclick="navigate('progress')" class="text-xs text-indigo-500 font-semibold flex items-center gap-1">詳細 ${icon('chevronRight',14)}</button>
           </div>
           ${weightData.labels.length >= 2
             ? `<canvas id="dash-chart" height="140"></canvas>`
@@ -709,9 +713,9 @@ function renderDashboard() {
 
         <!-- Today Summary -->
         <div class="card p-5 md:col-span-2 space-y-3">
-          <h3 class="font-bold text-gray-700 flex items-center gap-2">${icon('utensils',16,'text-orange-500')} 今日の食事</h3>
+          <h3 class="font-bold text-gray-700 flex items-center gap-2">${icon('utensils',16,'text-amber-500')} 今日の食事</h3>
           ${['breakfast','lunch','dinner'].map(type => {
-            const mealIcons = { breakfast: icon('sunrise',14,'text-orange-400'), lunch: icon('sun',14,'text-yellow-400'), dinner: icon('moon',14,'text-indigo-400') };
+            const mealIcons = { breakfast: icon('sunrise',14,'text-amber-400'), lunch: icon('sun',14,'text-yellow-400'), dinner: icon('moon',14,'text-indigo-400') };
             const mealNames = { breakfast: '朝食', lunch: '昼食', dinner: '夕食' };
             const items = mealToday[type] || [];
             const cal = items.reduce((s,i) => s+(Number(i.calories)||0), 0);
@@ -723,7 +727,7 @@ function renderDashboard() {
               <div class="text-sm font-semibold text-gray-600">${cal > 0 ? cal + 'kcal' : '-'}</div>
             </div>`;
           }).join('')}
-          <button onclick="navigate('meals')" class="w-full text-center text-xs text-purple-500 pt-2 font-semibold flex items-center justify-center gap-1">食事を記録する ${icon('arrowRight',13)}</button>
+          <button onclick="navigate('meals')" class="w-full text-center text-xs text-indigo-500 pt-2 font-semibold flex items-center justify-center gap-1">食事を記録する ${icon('arrowRight',13)}</button>
         </div>
       </div>
 
@@ -732,14 +736,14 @@ function renderDashboard() {
       <div class="card p-5">
         <div class="flex items-center justify-between mb-4">
           <h3 class="font-bold text-gray-700 flex items-center gap-2">${icon('dumbbell',16,'text-emerald-500')} 今日のトレーニング</h3>
-          <button onclick="navigate('workout')" class="text-xs text-purple-500 font-semibold flex items-center gap-1">編集 ${icon('chevronRight',13)}</button>
+          <button onclick="navigate('workout')" class="text-xs text-indigo-500 font-semibold flex items-center gap-1">編集 ${icon('chevronRight',13)}</button>
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
           ${workoutsToday.map(w => `
-            <div style="background:linear-gradient(135deg,#ede9fe,#fce7f3)" class="rounded-xl p-3">
-              <div class="text-sm font-bold text-purple-700">${escHtml(w.name)}</div>
-              <div class="text-xs text-purple-500 mt-1 font-medium">${w.sets.length}セット実施</div>
-              ${w.sets.length > 0 ? `<div class="text-xs text-purple-400 mt-0.5">最大 ${Math.max(...w.sets.map(s=>s.weight||0))}kg × ${w.sets[0].reps}回</div>` : ''}
+            <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe)" class="rounded-xl p-3">
+              <div class="text-sm font-bold text-blue-700">${escHtml(w.name)}</div>
+              <div class="text-xs text-blue-500 mt-1 font-medium">${w.sets.length}セット実施</div>
+              ${w.sets.length > 0 ? `<div class="text-xs text-blue-400 mt-0.5">最大 ${Math.max(...w.sets.map(s=>s.weight||0))}kg × ${w.sets[0].reps}回</div>` : ''}
             </div>
           `).join('')}
         </div>
@@ -749,17 +753,17 @@ function renderDashboard() {
       <div class="card p-5">
         <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">${icon('zap',16,'text-yellow-500')} クイックアクション</h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <button onclick="navigate('body')" class="flex items-center gap-3 p-4 rounded-2xl text-sm font-bold text-purple-700 active:scale-95 transition-transform" style="background:linear-gradient(135deg,#ede9fe,#e9d5ff)">
-            ${icon('scale',22,'text-purple-600')}<span>体重を記録</span>
+          <button onclick="navigate('body')" class="flex items-center gap-3 p-4 rounded-2xl text-sm font-bold text-indigo-700 active:scale-95 transition-transform" style="background:linear-gradient(135deg,#e0e7ff,#c7d2fe)">
+            ${icon('scale',22,'text-indigo-600')}<span>体重を記録</span>
           </button>
-          <button onclick="quickAddMeal()" class="flex items-center gap-3 p-4 rounded-2xl text-sm font-bold text-orange-700 active:scale-95 transition-transform" style="background:linear-gradient(135deg,#ffedd5,#fed7aa)">
-            ${icon('utensils',22,'text-orange-600')}<span>食事を追加</span>
+          <button onclick="quickAddMeal()" class="flex items-center gap-3 p-4 rounded-2xl text-sm font-bold text-amber-700 active:scale-95 transition-transform" style="background:linear-gradient(135deg,#fef3c7,#fde68a)">
+            ${icon('utensils',22,'text-amber-600')}<span>食事を追加</span>
           </button>
-          <button onclick="navigate('workout')" class="flex items-center gap-3 p-4 rounded-2xl text-sm font-bold text-emerald-700 active:scale-95 transition-transform" style="background:linear-gradient(135deg,#d1fae5,#a7f3d0)">
-            ${icon('dumbbell',22,'text-emerald-600')}<span>筋トレ記録</span>
+          <button onclick="navigate('workout')" class="flex items-center gap-3 p-4 rounded-2xl text-sm font-bold text-teal-700 active:scale-95 transition-transform" style="background:linear-gradient(135deg,#ccfbf1,#99f6e4)">
+            ${icon('dumbbell',22,'text-teal-600')}<span>筋トレ記録</span>
           </button>
-          <button onclick="navigate('ai')" class="flex items-center gap-3 p-4 rounded-2xl text-sm font-bold text-fuchsia-700 active:scale-95 transition-transform" style="background:linear-gradient(135deg,#fae8ff,#f5d0fe)">
-            ${icon('sparkles',22,'text-fuchsia-600')}<span>AIに相談</span>
+          <button onclick="navigate('ai')" class="flex items-center gap-3 p-4 rounded-2xl text-sm font-bold text-slate-700 active:scale-95 transition-transform" style="background:linear-gradient(135deg,#f1f5f9,#e2e8f0)">
+            ${icon('sparkles',22,'text-slate-500')}<span>AIに相談</span>
           </button>
         </div>
       </div>
@@ -780,10 +784,10 @@ function renderDashboard() {
           labels: weightData.labels,
           datasets: [{
             data: weightData.weights,
-            borderColor: '#7c3aed',
-            backgroundColor: 'rgba(124,58,237,0.08)',
+            borderColor: '#4f46e5',
+            backgroundColor: 'rgba(79,70,229,0.08)',
             borderWidth: 2.5,
-            pointBackgroundColor: '#7c3aed',
+            pointBackgroundColor: '#4f46e5',
             pointRadius: 4,
             pointHoverRadius: 6,
             fill: true,
@@ -839,7 +843,7 @@ function renderBody() {
 
       <!-- Input Form -->
       <div class="card p-6">
-        <h3 class="font-bold text-gray-700 mb-5 flex items-center gap-2">${icon('pencil',16,'text-purple-500')} 今日の記録</h3>
+        <h3 class="font-bold text-gray-700 mb-5 flex items-center gap-2">${icon('pencil',16,'text-indigo-500')} 今日の記録</h3>
         <form onsubmit="saveBodyRecord(event)" class="space-y-4">
           <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
             <div>
@@ -886,7 +890,7 @@ function renderBody() {
 
       <!-- History -->
       <div class="card p-6">
-        <h3 class="font-bold text-gray-700 mb-5 flex items-center gap-2">${icon('barChart',16,'text-purple-500')} 記録履歴</h3>
+        <h3 class="font-bold text-gray-700 mb-5 flex items-center gap-2">${icon('barChart',16,'text-indigo-500')} 記録履歴</h3>
         ${records.length === 0 ? `<div class="text-center py-8 text-gray-400">まだ記録がありません</div>` : `
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
@@ -991,18 +995,18 @@ function renderMeals() {
       <!-- Calorie Summary -->
       <div class="card p-5">
         <div class="flex items-center justify-between mb-4">
-          <span class="font-bold text-gray-700 flex items-center gap-2">${icon('flame',16,'text-orange-500')} 合計カロリー</span>
-          <span class="text-2xl font-black text-orange-500">${totalCals(mealData)}<span class="text-sm font-normal text-gray-400 ml-1">kcal</span></span>
+          <span class="font-bold text-gray-700 flex items-center gap-2">${icon('flame',16,'text-amber-500')} 合計カロリー</span>
+          <span class="text-2xl font-black text-amber-500">${totalCals(mealData)}<span class="text-sm font-normal text-gray-400 ml-1">kcal</span></span>
         </div>
         <div class="grid grid-cols-3 gap-3">
           ${['breakfast','lunch','dinner'].map(t => {
-            const tabIcons = { breakfast: icon('sunrise',14,'text-orange-600'), lunch: icon('sun',14,'text-orange-600'), dinner: icon('moon',14,'text-orange-600') };
+            const tabIcons = { breakfast: icon('sunrise',14,'text-amber-600'), lunch: icon('sun',14,'text-amber-600'), dinner: icon('moon',14,'text-amber-600') };
             const names = { breakfast:'朝食', lunch:'昼食', dinner:'夕食' };
             const cal = (mealData[t]||[]).reduce((s,i)=>s+(Number(i.calories)||0),0);
             return `<div class="text-center rounded-2xl p-3" style="background:linear-gradient(135deg,#fff7ed,#ffedd5)">
-              <div class="flex items-center justify-center gap-1 text-xs font-semibold text-orange-600 mb-1">${tabIcons[t]} ${names[t]}</div>
-              <div class="text-xl font-black text-orange-700">${cal}</div>
-              <div class="text-xs text-orange-400">kcal</div>
+              <div class="flex items-center justify-center gap-1 text-xs font-semibold text-amber-600 mb-1">${tabIcons[t]} ${names[t]}</div>
+              <div class="text-xl font-black text-amber-700">${cal}</div>
+              <div class="text-xs text-amber-400">kcal</div>
             </div>`;
           }).join('')}
         </div>
@@ -1057,7 +1061,7 @@ function renderMealTab(date, mealData) {
               <div class="text-sm font-medium text-gray-700 truncate">${escHtml(item.name)}</div>
               ${item.memo ? `<div class="text-xs text-gray-400 truncate">${escHtml(item.memo)}</div>` : ''}
             </div>
-            <div class="text-sm font-semibold text-orange-500 whitespace-nowrap">${item.calories}kcal</div>
+            <div class="text-sm font-semibold text-amber-500 whitespace-nowrap">${item.calories}kcal</div>
             <button onclick="removeMealItem(${i},'${date}','${type}')" class="text-gray-300 hover:text-red-400 ml-1 flex-shrink-0 p-1">${icon('x',14)}</button>
           </div>
         `).join('')}
@@ -1087,7 +1091,7 @@ function renderMealTab(date, mealData) {
               onfocus="onFoodSearchInput(this.value)"
               onblur="setTimeout(()=>document.getElementById('food-dropdown')?.classList.add('hidden'),160)"
               autocomplete="off"
-              class="w-full pl-9 pr-8 border border-gray-200 rounded-xl py-2.5 text-sm focus:outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-100 transition">
+              class="w-full pl-9 pr-8 border border-gray-200 rounded-xl py-2.5 text-sm focus:outline-none focus:border-indigo-300 focus:ring-2 focus:ring-indigo-100 transition">
             <button id="food-clear-btn" onmousedown="event.preventDefault()" onclick="clearFoodSearch()"
               class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 p-0.5 rounded-full hover:bg-gray-100 transition">
               ${icon('x', 13)}
@@ -1103,18 +1107,18 @@ function renderMealTab(date, mealData) {
         </div>
 
         <!-- Selected food — quantity adjuster -->
-        <div id="food-qty-row" class="hidden p-3.5 rounded-2xl" style="background:linear-gradient(135deg,#ede9fe,#fce7f3)">
+        <div id="food-qty-row" class="hidden p-3.5 rounded-2xl" style="background:linear-gradient(135deg,#e0e7ff,#c7d2fe)">
           <div class="flex items-center gap-2 mb-2.5">
-            <span id="food-selected-name" class="text-sm font-bold text-purple-800 truncate flex-1"></span>
-            <span id="food-selected-cat" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-white/80 text-purple-600 flex-shrink-0"></span>
+            <span id="food-selected-name" class="text-sm font-bold text-indigo-800 truncate flex-1"></span>
+            <span id="food-selected-cat" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-white/80 text-indigo-600 flex-shrink-0"></span>
           </div>
           <div class="flex items-center gap-2">
-            <span class="text-xs font-medium text-purple-600 whitespace-nowrap">量を調整</span>
+            <span class="text-xs font-medium text-indigo-600 whitespace-nowrap">量を調整</span>
             <input type="number" id="food-qty" value="1" min="0.1" step="0.1"
               oninput="recalcFoodCal()"
-              class="w-16 border border-purple-200 rounded-lg px-2 py-1.5 text-sm text-center bg-white font-semibold focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-200">
-            <span id="food-unit-label" class="text-xs text-purple-500 flex-1 truncate"></span>
-            <span class="text-sm font-black text-purple-700 whitespace-nowrap" id="food-cal-preview"></span>
+              class="w-16 border border-indigo-200 rounded-lg px-2 py-1.5 text-sm text-center bg-white font-semibold focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-100">
+            <span id="food-unit-label" class="text-xs text-indigo-500 flex-1 truncate"></span>
+            <span class="text-sm font-black text-indigo-700 whitespace-nowrap" id="food-cal-preview"></span>
           </div>
         </div>
 
@@ -1123,7 +1127,7 @@ function renderMealTab(date, mealData) {
           <div class="relative flex-1">
             <input type="number" id="meal-cal" placeholder="kcal"
               oninput="this.dataset.aiSet='false';document.getElementById('cal-ai-badge')?.classList.add('hidden');document.getElementById('cal-ai-note')?.classList.add('hidden')"
-              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm transition focus:outline-none focus:border-purple-300">
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm transition focus:outline-none focus:border-indigo-300">
             <span id="cal-spinner" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-indigo-400 text-xs animate-spin select-none">◌</span>
             <span id="cal-ai-badge" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-indigo-400 text-xs select-none" title="AIが推定しました">✨</span>
           </div>
@@ -1219,14 +1223,14 @@ function renderFoodDropdown(q) {
     inner.innerHTML = results.map(item => {
       const isSelected = _selectedFoodItem && _selectedFoodItem.id === item.id && _selectedFoodItem._tab === _foodSearchTab;
       return `<button onmousedown="event.preventDefault()" onclick="selectFoodItem(${item.id})"
-        class="w-full flex items-center gap-3 px-4 py-2.5 text-left transition ${isSelected ? 'bg-purple-50' : 'hover:bg-purple-50/60'}">
+        class="w-full flex items-center gap-3 px-4 py-2.5 text-left transition ${isSelected ? 'bg-indigo-50' : 'hover:bg-indigo-50/60'}">
         <div class="flex-1 min-w-0">
           <div class="text-sm font-semibold text-gray-800 truncate">${escHtml(item.name)}</div>
           <div class="text-xs text-gray-400">${escHtml(item.unit)}</div>
         </div>
         <div class="flex items-center gap-2 flex-shrink-0">
           <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">${escHtml(item.category)}</span>
-          <span class="text-sm font-bold text-orange-500 w-16 text-right">${item.calories}kcal</span>
+          <span class="text-sm font-bold text-amber-500 w-16 text-right">${item.calories}kcal</span>
         </div>
       </button>`;
     }).join('');
@@ -1475,9 +1479,9 @@ function renderWorkoutContent(date) {
         <div class="card p-4">
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#7c3aed,#ec4899)">${icon('dumbbell',18,'text-white')}</div>
+              <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#1d4ed8,#2563eb)">${icon('dumbbell',18,'text-white')}</div>
               <h3 class="font-black text-gray-800">${escHtml(ex.name)}</h3>
-              <span class="text-xs font-bold px-2.5 py-1 rounded-full text-purple-700" style="background:linear-gradient(135deg,#ede9fe,#fce7f3)">${ex.sets.length}セット</span>
+              <span class="text-xs font-bold px-2.5 py-1 rounded-full text-blue-700 bg-blue-50">${ex.sets.length}セット</span>
             </div>
             <button onclick="removeExercise(${ei},'${date}')" class="text-gray-300 hover:text-red-400 p-1 rounded-lg transition-colors">${icon('trash',16)}</button>
           </div>
@@ -1500,7 +1504,7 @@ function renderWorkoutContent(date) {
               </div>
             `).join('')}
           </div>
-          <button onclick="addSet(${ei},'${date}')" class="text-sm text-purple-500 flex items-center gap-1.5 font-semibold mt-1">
+          <button onclick="addSet(${ei},'${date}')" class="text-sm text-indigo-500 flex items-center gap-1.5 font-semibold mt-1">
             ${icon('plus',14)} セットを追加
           </button>
         </div>
@@ -1553,7 +1557,7 @@ function renderWorkoutContent(date) {
         <div class="text-sm text-gray-600">
           ${exercises.length}種目 / 総セット数: ${exercises.reduce((s,e)=>s+e.sets.length,0)}セット
         </div>
-        <button onclick="navigate('ai')" class="text-sm text-purple-500 font-semibold flex items-center gap-1.5">${icon('sparkles',14)} AIにアドバイスをもらう ${icon('chevronRight',13)}</button>
+        <button onclick="navigate('ai')" class="text-sm text-indigo-500 font-semibold flex items-center gap-1.5">${icon('sparkles',14)} AIにアドバイスをもらう ${icon('chevronRight',13)}</button>
       </div>
     </div>` : ''}
   `;
@@ -1634,7 +1638,7 @@ function renderProgress() {
           <div class="flex gap-1.5">
             ${[7,14,30,90].map(d => `
               <button onclick="updateProgressChart(${d})" data-days="${d}"
-                class="px-3 py-1.5 text-xs rounded-xl font-bold transition ${d===30?'bg-white text-purple-700':'bg-white/20 text-white hover:bg-white/30'}">
+                class="px-3 py-1.5 text-xs rounded-xl font-bold transition ${d===30?'bg-white text-indigo-700':'bg-white/20 text-white hover:bg-white/30'}">
                 ${d}日
               </button>`).join('')}
           </div>
@@ -1659,13 +1663,13 @@ function renderProgress() {
 
       <!-- Calorie Chart -->
       <div class="card p-6">
-        <h3 class="font-bold text-gray-700 mb-5 flex items-center gap-2">${icon('flame',16,'text-orange-500')} カロリー推移（直近14日）</h3>
+        <h3 class="font-bold text-gray-700 mb-5 flex items-center gap-2">${icon('flame',16,'text-amber-500')} カロリー推移（直近14日）</h3>
         <canvas id="progress-cal-chart" height="100"></canvas>
       </div>
 
       <!-- Records Table -->
       <div class="card p-6">
-        <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">${icon('barChart',16,'text-purple-500')} 全記録</h3>
+        <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">${icon('barChart',16,'text-indigo-500')} 全記録</h3>
         ${records.length === 0 ? '<div class="text-center py-8 text-gray-400">記録がありません</div>' : `
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
@@ -1732,7 +1736,7 @@ function renderStatCards(records) {
 function updateProgressChart(days) {
   document.querySelectorAll('[data-days]').forEach(btn => {
     const isActive = parseInt(btn.dataset.days) === days;
-    btn.className = `px-3 py-1.5 text-xs rounded-xl font-bold transition ${isActive ? 'bg-white text-purple-700' : 'bg-white/20 text-white hover:bg-white/30'}`;
+    btn.className = `px-3 py-1.5 text-xs rounded-xl font-bold transition ${isActive ? 'bg-white text-indigo-700' : 'bg-white/20 text-white hover:bg-white/30'}`;
   });
 
   if (activeChart) { try { activeChart.destroy(); } catch {} activeChart = null; }
@@ -1752,7 +1756,7 @@ function updateProgressChart(days) {
         borderColor: '#6366f1',
         backgroundColor: 'rgba(99,102,241,0.08)',
         borderWidth: 2.5,
-        pointBackgroundColor: '#7c3aed',
+        pointBackgroundColor: '#4f46e5',
         pointRadius: 4,
         fill: true,
         tension: 0.3,
@@ -1868,7 +1872,7 @@ function renderAI() {
                   '停滞期を乗り越えるには？',
                 ].map(q => `<button onclick="copyQuestion('${q}')"
                   class="text-xs font-semibold px-3 py-1.5 rounded-xl transition text-left"
-                  style="background:linear-gradient(135deg,#ede9fe,#fce7f3);color:#7c3aed">
+                  style="background:#f1f5f9;color:#4338ca">
                   ${q}
                 </button>`).join('')}
               </div>
@@ -1888,15 +1892,15 @@ function renderAI() {
 
             <div class="border-t border-gray-100 pt-3 space-y-2">
               <button onclick="copyDataForAI()"
-                class="w-full flex items-center justify-between px-4 py-3 bg-purple-50 hover:bg-purple-100 rounded-xl transition group">
+                class="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-xl transition group">
                 <div class="flex items-center gap-2.5">
                   <span class="text-xl">📋</span>
                   <div class="text-left">
-                    <div class="text-sm font-semibold text-purple-700">データをコピーしてAIに相談</div>
-                    <div class="text-xs text-purple-400">体重・食事・筋トレのデータをまとめてコピー</div>
+                    <div class="text-sm font-semibold text-indigo-700">データをコピーしてAIに相談</div>
+                    <div class="text-xs text-indigo-400">体重・食事・筋トレのデータをまとめてコピー</div>
                   </div>
                 </div>
-                <span class="text-purple-400 group-hover:translate-x-0.5 transition-transform text-sm">→</span>
+                <span class="text-indigo-400 group-hover:translate-x-0.5 transition-transform text-sm">→</span>
               </button>
               <p class="text-xs text-gray-400 text-center">
                 コピー後は
@@ -1920,7 +1924,7 @@ function renderAI() {
                 'バランスの良い食事プランは？',
                 '筋トレ後の食事はどうすればいい？',
                 '今日のデータを分析して'
-              ].map(q => `<button onclick="sendAiMessage('${q}')" class="text-xs font-semibold px-3 py-2 rounded-xl transition" style="background:linear-gradient(135deg,#ede9fe,#fce7f3);color:#7c3aed">${q}</button>`).join('')}
+              ].map(q => `<button onclick="sendAiMessage('${q}')" class="text-xs font-semibold px-3 py-2 rounded-xl transition" style="background:linear-gradient(135deg,#e0e7ff,#c7d2fe);color:#7c3aed">${q}</button>`).join('')}
             </div>
           </div>
         ` : aiMessages.map(m => `
