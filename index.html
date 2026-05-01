@@ -1,0 +1,2315 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#7c3aed">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>FitTracker - ダイエット・筋トレ管理</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800;900&display=swap');
+
+    :root {
+      --c-purple: #7c3aed;
+      --c-pink:   #ec4899;
+      --c-orange: #f97316;
+      --c-green:  #10b981;
+      --c-blue:   #3b82f6;
+      --nav-h:    72px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; }
+
+    html, body {
+      height: 100%;
+      height: 100dvh;
+    }
+
+    body {
+      font-family: 'M PLUS Rounded 1c', 'Segoe UI', system-ui, sans-serif;
+      background: #f0eeff;
+      overscroll-behavior: none;
+    }
+
+    /* ── App Shell ── */
+    #app-shell {
+      display: flex;
+      height: 100%;
+      height: 100dvh;
+      overflow: hidden;
+    }
+
+    #main-content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      scroll-behavior: smooth;
+    }
+
+    /* ── Animations ── */
+    .page { animation: popIn 0.28s cubic-bezier(.34,1.56,.64,1); }
+    @keyframes popIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .progress-bar { transition: width 0.6s cubic-bezier(.34,1.56,.64,1); }
+    .ai-typing::after { content: '▋'; animation: blink 0.7s step-end infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ── Scrollbar (desktop only) ── */
+    @media (min-width: 769px) {
+      ::-webkit-scrollbar { width: 4px; height: 4px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #c4b5fd; border-radius: 99px; }
+    }
+
+    /* ── Sidebar (desktop) ── */
+    .sidebar-bg {
+      background: linear-gradient(160deg, #2d1b69 0%, #6d28d9 45%, #c026d3 100%);
+    }
+    .sidebar-link { transition: all 0.18s; border-radius: 12px; }
+    .sidebar-link.active {
+      background: rgba(255,255,255,0.22);
+      color: white !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .sidebar-link .nav-icon {
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.1);
+      transition: all 0.18s;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .sidebar-link.active .nav-icon {
+      background: rgba(255,255,255,0.25);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .sidebar-link:hover .nav-icon { background: rgba(255,255,255,0.18); }
+
+    /* ── Cards ── */
+    .card {
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 2px 16px rgba(109,40,217,0.07);
+    }
+    .stat-card-pop {
+      border-radius: 22px;
+      color: white;
+      transition: transform 0.2s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s;
+      cursor: pointer;
+      padding: 18px 16px;
+    }
+    @media (hover: hover) {
+      .stat-card-pop:hover { transform: translateY(-4px) scale(1.02); }
+    }
+    .stat-card-pop:active { transform: scale(0.97); }
+
+    .sc-purple { background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%); box-shadow: 0 8px 24px rgba(124,58,237,0.35); }
+    .sc-orange { background: linear-gradient(135deg, #ea580c 0%, #f97316 100%); box-shadow: 0 8px 24px rgba(234,88,12,0.35); }
+    .sc-red    { background: linear-gradient(135deg, #e11d48 0%, #f43f5e 100%); box-shadow: 0 8px 24px rgba(225,29,72,0.35); }
+    .sc-green  { background: linear-gradient(135deg, #059669 0%, #0d9488 100%); box-shadow: 0 8px 24px rgba(5,150,105,0.35); }
+    .sc-blue   { background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); box-shadow: 0 8px 24px rgba(37,99,235,0.30); }
+    .sc-surplus{ background: linear-gradient(135deg, #f97316 0%, #ef4444 100%); box-shadow: 0 8px 24px rgba(249,115,22,0.35); }
+    .sc-deficit{ background: linear-gradient(135deg, #059669 0%, #06b6d4 100%); box-shadow: 0 8px 24px rgba(5,150,105,0.35); }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed, #ec4899);
+      color: white; border: none;
+      border-radius: 14px;
+      transition: all 0.2s;
+      box-shadow: 0 4px 14px rgba(124,58,237,0.35);
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    .btn-primary:active { transform: scale(0.96); }
+    @media (hover: hover) {
+      .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(124,58,237,0.45);
+      }
+    }
+
+    /* ── Inputs ── */
+    input, select, textarea {
+      border-radius: 14px !important;
+      transition: all 0.15s;
+      -webkit-appearance: none;
+      font-size: 16px; /* prevent iOS zoom */
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #a855f7 !important;
+      box-shadow: 0 0 0 3px rgba(168,85,247,0.18);
+    }
+
+    /* ── Tabs ── */
+    .pop-tab-active {
+      background: linear-gradient(135deg, #7c3aed, #ec4899) !important;
+      color: white !important;
+      border-radius: 99px !important;
+      box-shadow: 0 3px 10px rgba(124,58,237,0.35);
+    }
+
+    /* ── Chat ── */
+    .chat-user-msg { background: linear-gradient(135deg, #7c3aed, #ec4899); color: white; border-radius: 20px 20px 4px 20px; }
+    .chat-ai-msg   { background: white; border: 1px solid #ede9fe; color: #1e293b; border-radius: 20px 20px 20px 4px; box-shadow: 0 2px 8px rgba(109,40,217,0.08); }
+
+    /* ── Page Banners (full-bleed on mobile) ── */
+    .page-banner {
+      color: white;
+      position: relative;
+      overflow: hidden;
+      padding: 24px 20px 22px;
+    }
+    .page-banner::before {
+      content: '';
+      position: absolute;
+      right: -30px; bottom: -30px;
+      width: 160px; height: 160px;
+      background: rgba(255,255,255,0.07);
+      border-radius: 50%;
+    }
+    .page-banner::after {
+      content: '';
+      position: absolute;
+      right: 40px; top: -40px;
+      width: 100px; height: 100px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 50%;
+    }
+    /* Mobile: edge-to-edge banners (no border-radius, handled by wrapper) */
+    @media (max-width: 768px) {
+      .page-banner { border-radius: 0 0 28px 28px; }
+    }
+    @media (min-width: 769px) {
+      .page-banner { border-radius: 24px; }
+    }
+
+    .banner-body    { background: linear-gradient(135deg, #7c3aed, #a855f7); }
+    .banner-meals   { background: linear-gradient(135deg, #ea580c, #f97316); }
+    .banner-workout { background: linear-gradient(135deg, #059669, #0d9488); }
+    .banner-progress{ background: linear-gradient(135deg, #2563eb, #7c3aed); }
+    .banner-ai      { background: linear-gradient(135deg, #c026d3, #7c3aed); }
+    .banner-settings{ background: linear-gradient(135deg, #475569, #334155); }
+
+    /* ── Floating Mobile Nav ── */
+    #mobile-nav {
+      display: none;
+      position: fixed;
+      bottom: calc(16px + var(--safe-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 32px);
+      max-width: 420px;
+      background: white;
+      border-radius: 28px;
+      padding: 6px;
+      box-shadow: 0 8px 32px rgba(124,58,237,0.22), 0 2px 8px rgba(0,0,0,0.06);
+      z-index: 100;
+      gap: 2px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mob-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 8px 4px;
+      border-radius: 22px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.18s cubic-bezier(.34,1.56,.64,1);
+      user-select: none;
+    }
+    .mob-item .mob-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.18s cubic-bezier(.34,1.56,.64,1);
+    }
+    .mob-item .mob-icon svg { display: block; }
+    .mob-item .mob-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #94a3b8;
+      font-family: 'M PLUS Rounded 1c', sans-serif;
+      transition: color 0.18s;
+      white-space: nowrap;
+    }
+    .mob-item.mob-active {
+      background: linear-gradient(135deg, #7c3aed, #ec4899);
+    }
+    .mob-item.mob-active .mob-label {
+      color: white;
+    }
+    .mob-item.mob-active .mob-icon {
+      transform: scale(1.15);
+    }
+    .mob-item:active { transform: scale(0.93); }
+
+    /* ── Misc ── */
+    .set-row:hover { background: #faf5ff; }
+    a { -webkit-tap-highlight-color: transparent; }
+
+    /* ── Page layout ── */
+    .page { padding: 0; }
+    .page-inner { padding: 0 20px; display: flex; flex-direction: column; gap: 20px; }
+    .page > .page-banner { margin: 0; }
+
+    @media (max-width: 768px) {
+      #sidebar { display: none; }
+      #mobile-nav { display: flex; }
+      .page-pad { padding-bottom: calc(var(--nav-h) + 32px + var(--safe-bottom)) !important; }
+      .page-inner { padding-top: 24px; padding-bottom: calc(var(--nav-h) + 32px + var(--safe-bottom)); }
+    }
+    @media (min-width: 769px) {
+      #mobile-nav { display: none; }
+      .page-pad { padding-bottom: 40px; }
+      .page-inner { padding: 28px 32px 40px; gap: 24px; }
+      .page > .page-banner { margin: 24px 24px 0; }
+    }
+
+    /* ── Icon ── */
+    .icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .nav-icon svg { display: block; }
+  </style>
+</head>
+<body>
+
+  <!-- App Shell -->
+  <div id="app-shell">
+
+    <!-- Sidebar (desktop only) -->
+    <aside id="sidebar" class="w-64 sidebar-bg text-white flex flex-col flex-shrink-0 overflow-y-auto">
+      <div class="p-5 border-b border-white/10">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center shadow-inner text-white"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/></svg></div>
+          <div>
+            <h1 class="text-base font-black leading-tight tracking-wide">FitTracker</h1>
+            <p class="text-xs text-purple-200 font-medium">ダイエット・筋トレ管理</p>
+          </div>
+        </div>
+      </div>
+      <nav class="flex-1 p-3 space-y-0.5">
+        <a href="#" onclick="navigate('dashboard');return false" data-page="dashboard"
+           class="sidebar-link active flex items-center gap-3 px-3 py-3 text-sm font-semibold text-white/80 hover:text-white">
+          <div class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></div>
+          ダッシュボード
+        </a>
+        <a href="#" onclick="navigate('body');return false" data-page="body"
+           class="sidebar-link flex items-center gap-3 px-3 py-3 text-sm font-semibold text-white/80 hover:text-white">
+          <div class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg></div>
+          体重・体型記録
+        </a>
+        <a href="#" onclick="navigate('meals');return false" data-page="meals"
+           class="sidebar-link flex items-center gap-3 px-3 py-3 text-sm font-semibold text-white/80 hover:text-white">
+          <div class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3v5"/></svg></div>
+          食事管理
+        </a>
+        <a href="#" onclick="navigate('workout');return false" data-page="workout"
+           class="sidebar-link flex items-center gap-3 px-3 py-3 text-sm font-semibold text-white/80 hover:text-white">
+          <div class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/></svg></div>
+          筋トレ記録
+        </a>
+        <a href="#" onclick="navigate('progress');return false" data-page="progress"
+           class="sidebar-link flex items-center gap-3 px-3 py-3 text-sm font-semibold text-white/80 hover:text-white">
+          <div class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
+          進捗グラフ
+        </a>
+        <a href="#" onclick="navigate('ai');return false" data-page="ai"
+           class="sidebar-link flex items-center gap-3 px-3 py-3 text-sm font-semibold text-white/80 hover:text-white">
+          <div class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg></div>
+          AIアドバイス
+        </a>
+      </nav>
+      <div class="p-3 border-t border-white/10">
+        <a href="#" onclick="navigate('settings');return false" data-page="settings"
+           class="sidebar-link flex items-center gap-3 px-3 py-3 text-sm font-semibold text-white/80 hover:text-white">
+          <div class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></div>
+          設定
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main id="main-content">
+      <div id="page-content"></div>
+    </main>
+  </div>
+
+  <!-- Floating Mobile Nav -->
+  <nav id="mobile-nav">
+    <button onclick="navigate('dashboard')" class="mob-item mob-active" data-mob="dashboard">
+      <span class="mob-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg></span>
+      <span class="mob-label">ホーム</span>
+    </button>
+    <button onclick="navigate('body')" class="mob-item" data-mob="body">
+      <span class="mob-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg></span>
+      <span class="mob-label">体重</span>
+    </button>
+    <button onclick="navigate('meals')" class="mob-item" data-mob="meals">
+      <span class="mob-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3v5"/></svg></span>
+      <span class="mob-label">食事</span>
+    </button>
+    <button onclick="navigate('workout')" class="mob-item" data-mob="workout">
+      <span class="mob-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/></svg></span>
+      <span class="mob-label">筋トレ</span>
+    </button>
+    <button onclick="navigate('ai')" class="mob-item" data-mob="ai">
+      <span class="mob-icon"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg></span>
+      <span class="mob-label">AI</span>
+    </button>
+  </nav>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed top-4 right-4 z-50 hidden">
+    <div style="background:linear-gradient(135deg,#7c3aed,#ec4899)" class="text-white px-4 py-2.5 rounded-2xl text-sm shadow-lg flex items-center gap-2">
+      <span id="toast-icon">✓</span>
+      <span id="toast-msg"></span>
+    </div>
+  </div>
+
+<script>
+// ============================================================
+// FOOD DATABASE (inlined to avoid file:// fetch restrictions)
+// ============================================================
+const _FOODS_DATA=[{"id":1,"name":"白米（茶碗1杯）","unit":"150g","calories":252,"category":"穀類"},{"id":2,"name":"白米（大盛り）","unit":"200g","calories":336,"category":"穀類"},{"id":3,"name":"玄米（茶碗1杯）","unit":"150g","calories":248,"category":"穀類"},{"id":4,"name":"食パン（6枚切り）","unit":"1枚(60g)","calories":158,"category":"穀類"},{"id":5,"name":"食パン（8枚切り）","unit":"1枚(45g)","calories":119,"category":"穀類"},{"id":6,"name":"フランスパン","unit":"1切れ(30g)","calories":84,"category":"穀類"},{"id":7,"name":"クロワッサン","unit":"1個(45g)","calories":197,"category":"穀類"},{"id":8,"name":"うどん（茹で）","unit":"1玉(200g)","calories":210,"category":"穀類"},{"id":9,"name":"そば（茹で）","unit":"1玉(200g)","calories":264,"category":"穀類"},{"id":10,"name":"スパゲッティ（茹で）","unit":"1人前(200g)","calories":284,"category":"穀類"},{"id":11,"name":"ラーメン（生麺）","unit":"1玉(120g)","calories":337,"category":"穀類"},{"id":12,"name":"オートミール","unit":"1食(40g)","calories":152,"category":"穀類"},{"id":13,"name":"コーンフレーク","unit":"1食(40g)","calories":152,"category":"穀類"},{"id":14,"name":"餅","unit":"1個(50g)","calories":112,"category":"穀類"},{"id":15,"name":"じゃがいも","unit":"1個(150g)","calories":114,"category":"芋類"},{"id":16,"name":"さつまいも","unit":"1/2本(100g)","calories":132,"category":"芋類"},{"id":17,"name":"里芋","unit":"3個(150g)","calories":96,"category":"芋類"},{"id":18,"name":"長芋","unit":"100g","calories":65,"category":"芋類"},{"id":19,"name":"鶏むね肉（皮なし）","unit":"100g","calories":116,"category":"肉類"},{"id":20,"name":"鶏むね肉（皮あり）","unit":"100g","calories":191,"category":"肉類"},{"id":21,"name":"鶏もも肉（皮なし）","unit":"100g","calories":127,"category":"肉類"},{"id":22,"name":"鶏もも肉（皮あり）","unit":"100g","calories":204,"category":"肉類"},{"id":23,"name":"鶏ささみ","unit":"1本(60g)","calories":65,"category":"肉類"},{"id":24,"name":"豚ロース","unit":"100g","calories":263,"category":"肉類"},{"id":25,"name":"豚バラ","unit":"100g","calories":395,"category":"肉類"},{"id":26,"name":"豚ヒレ","unit":"100g","calories":115,"category":"肉類"},{"id":27,"name":"豚こま切れ","unit":"100g","calories":209,"category":"肉類"},{"id":28,"name":"牛ロース","unit":"100g","calories":380,"category":"肉類"},{"id":29,"name":"牛もも","unit":"100g","calories":182,"category":"肉類"},{"id":30,"name":"牛ひき肉","unit":"100g","calories":272,"category":"肉類"},{"id":31,"name":"豚ひき肉","unit":"100g","calories":236,"category":"肉類"},{"id":32,"name":"鶏ひき肉","unit":"100g","calories":171,"category":"肉類"},{"id":33,"name":"合びき肉","unit":"100g","calories":257,"category":"肉類"},{"id":34,"name":"ベーコン","unit":"1枚(20g)","calories":81,"category":"肉類"},{"id":35,"name":"ウインナー","unit":"1本(20g)","calories":64,"category":"肉類"},{"id":36,"name":"ハム（ロース）","unit":"1枚(20g)","calories":39,"category":"肉類"},{"id":37,"name":"サラダチキン","unit":"1袋(115g)","calories":120,"category":"肉類"},{"id":38,"name":"鶏皮","unit":"100g","calories":492,"category":"肉類"},{"id":39,"name":"豚レバー","unit":"100g","calories":128,"category":"肉類"},{"id":40,"name":"鶏レバー","unit":"100g","calories":111,"category":"肉類"},{"id":41,"name":"サーモン（生）","unit":"100g","calories":204,"category":"魚介類"},{"id":42,"name":"マグロ（赤身）","unit":"100g","calories":125,"category":"魚介類"},{"id":43,"name":"マグロ（中トロ）","unit":"100g","calories":247,"category":"魚介類"},{"id":44,"name":"ブリ","unit":"100g","calories":257,"category":"魚介類"},{"id":45,"name":"サバ（生）","unit":"100g","calories":247,"category":"魚介類"},{"id":46,"name":"アジ（生）","unit":"100g","calories":126,"category":"魚介類"},{"id":47,"name":"イワシ（生）","unit":"100g","calories":169,"category":"魚介類"},{"id":48,"name":"タラ","unit":"100g","calories":77,"category":"魚介類"},{"id":49,"name":"鮭（生）","unit":"100g","calories":133,"category":"魚介類"},{"id":50,"name":"カツオ","unit":"100g","calories":114,"category":"魚介類"},{"id":51,"name":"エビ","unit":"100g","calories":83,"category":"魚介類"},{"id":52,"name":"イカ","unit":"100g","calories":83,"category":"魚介類"},{"id":53,"name":"タコ","unit":"100g","calories":76,"category":"魚介類"},{"id":54,"name":"ホタテ","unit":"100g","calories":72,"category":"魚介類"},{"id":55,"name":"アサリ","unit":"100g","calories":30,"category":"魚介類"},{"id":56,"name":"ツナ缶（水煮）","unit":"1缶(70g)","calories":59,"category":"魚介類"},{"id":57,"name":"ツナ缶（油漬け）","unit":"1缶(70g)","calories":168,"category":"魚介類"},{"id":58,"name":"さば缶（水煮）","unit":"1缶(190g)","calories":290,"category":"魚介類"},{"id":59,"name":"いくら","unit":"大さじ1(20g)","calories":54,"category":"魚介類"},{"id":60,"name":"明太子","unit":"1腹(50g)","calories":69,"category":"魚介類"},{"id":61,"name":"卵","unit":"1個(60g)","calories":91,"category":"卵類"},{"id":62,"name":"卵白","unit":"1個分(30g)","calories":14,"category":"卵類"},{"id":63,"name":"卵黄","unit":"1個分(20g)","calories":77,"category":"卵類"},{"id":64,"name":"温泉卵","unit":"1個(60g)","calories":90,"category":"卵類"},{"id":65,"name":"牛乳","unit":"200ml","calories":137,"category":"乳製品"},{"id":66,"name":"低脂肪牛乳","unit":"200ml","calories":92,"category":"乳製品"},{"id":67,"name":"無脂肪牛乳","unit":"200ml","calories":66,"category":"乳製品"},{"id":68,"name":"ヨーグルト（無糖）","unit":"100g","calories":62,"category":"乳製品"},{"id":69,"name":"ヨーグルト（加糖）","unit":"100g","calories":92,"category":"乳製品"},{"id":70,"name":"ギリシャヨーグルト","unit":"100g","calories":100,"category":"乳製品"},{"id":71,"name":"チーズ（プロセス）","unit":"1枚(18g)","calories":61,"category":"乳製品"},{"id":72,"name":"カッテージチーズ","unit":"100g","calories":105,"category":"乳製品"},{"id":73,"name":"モッツァレラチーズ","unit":"100g","calories":276,"category":"乳製品"},{"id":74,"name":"バター","unit":"10g","calories":75,"category":"乳製品"},{"id":75,"name":"生クリーム","unit":"大さじ1(15g)","calories":65,"category":"乳製品"},{"id":76,"name":"豆腐（木綿）","unit":"1/2丁(150g)","calories":108,"category":"大豆製品"},{"id":77,"name":"豆腐（絹ごし）","unit":"1/2丁(150g)","calories":84,"category":"大豆製品"},{"id":78,"name":"納豆","unit":"1パック(45g)","calories":81,"category":"大豆製品"},{"id":79,"name":"豆乳（無調整）","unit":"200ml","calories":88,"category":"大豆製品"},{"id":80,"name":"豆乳（調整）","unit":"200ml","calories":126,"category":"大豆製品"},{"id":81,"name":"厚揚げ","unit":"1枚(150g)","calories":204,"category":"大豆製品"},{"id":82,"name":"油揚げ","unit":"1枚(30g)","calories":111,"category":"大豆製品"},{"id":83,"name":"枝豆","unit":"1/2袋(100g)","calories":135,"category":"大豆製品"},{"id":84,"name":"キャベツ","unit":"1/4個(200g)","calories":46,"category":"野菜"},{"id":85,"name":"レタス","unit":"1/4個(80g)","calories":11,"category":"野菜"},{"id":86,"name":"ほうれん草","unit":"1袋(200g)","calories":40,"category":"野菜"},{"id":87,"name":"小松菜","unit":"1袋(200g)","calories":28,"category":"野菜"},{"id":88,"name":"ブロッコリー","unit":"1/2房(150g)","calories":50,"category":"野菜"},{"id":89,"name":"トマト","unit":"1個(200g)","calories":38,"category":"野菜"},{"id":90,"name":"ミニトマト","unit":"5個(75g)","calories":21,"category":"野菜"},{"id":91,"name":"きゅうり","unit":"1本(100g)","calories":14,"category":"野菜"},{"id":92,"name":"なす","unit":"1本(80g)","calories":18,"category":"野菜"},{"id":93,"name":"ピーマン","unit":"1個(30g)","calories":7,"category":"野菜"},{"id":94,"name":"パプリカ（赤）","unit":"1個(150g)","calories":45,"category":"野菜"},{"id":95,"name":"にんじん","unit":"1/2本(100g)","calories":39,"category":"野菜"},{"id":96,"name":"玉ねぎ","unit":"1/2個(100g)","calories":37,"category":"野菜"},{"id":97,"name":"長ねぎ","unit":"1本(80g)","calories":22,"category":"野菜"},{"id":98,"name":"大根","unit":"1/5本(200g)","calories":36,"category":"野菜"},{"id":99,"name":"もやし","unit":"1袋(200g)","calories":30,"category":"野菜"},{"id":100,"name":"ごぼう","unit":"1/2本(100g)","calories":65,"category":"野菜"},{"id":101,"name":"れんこん","unit":"100g","calories":66,"category":"野菜"},{"id":102,"name":"かぼちゃ","unit":"1/8個(100g)","calories":91,"category":"野菜"},{"id":103,"name":"アボカド","unit":"1/2個(75g)","calories":113,"category":"野菜"},{"id":104,"name":"しいたけ","unit":"2枚(40g)","calories":11,"category":"きのこ"},{"id":105,"name":"しめじ","unit":"1/2袋(100g)","calories":18,"category":"きのこ"},{"id":106,"name":"えのき","unit":"1袋(200g)","calories":36,"category":"きのこ"},{"id":107,"name":"エリンギ","unit":"1本(50g)","calories":17,"category":"きのこ"},{"id":108,"name":"バナナ","unit":"1本(100g)","calories":86,"category":"果物"},{"id":109,"name":"りんご","unit":"1/2個(130g)","calories":71,"category":"果物"},{"id":110,"name":"みかん","unit":"1個(80g)","calories":38,"category":"果物"},{"id":111,"name":"ぶどう","unit":"1房(150g)","calories":90,"category":"果物"},{"id":112,"name":"いちご","unit":"5粒(100g)","calories":34,"category":"果物"},{"id":113,"name":"キウイ","unit":"1個(100g)","calories":53,"category":"果物"},{"id":114,"name":"スイカ","unit":"1切れ(200g)","calories":74,"category":"果物"},{"id":115,"name":"オリーブオイル","unit":"大さじ1(12g)","calories":111,"category":"油脂"},{"id":116,"name":"ごま油","unit":"大さじ1(12g)","calories":111,"category":"油脂"},{"id":117,"name":"サラダ油","unit":"大さじ1(12g)","calories":111,"category":"油脂"},{"id":118,"name":"マヨネーズ","unit":"大さじ1(12g)","calories":84,"category":"調味料"},{"id":119,"name":"マヨネーズ（カロリーハーフ）","unit":"大さじ1(12g)","calories":47,"category":"調味料"},{"id":120,"name":"ドレッシング（和風）","unit":"大さじ1(15g)","calories":20,"category":"調味料"},{"id":121,"name":"ドレッシング（フレンチ）","unit":"大さじ1(15g)","calories":61,"category":"調味料"},{"id":122,"name":"味噌","unit":"大さじ1(18g)","calories":33,"category":"調味料"},{"id":123,"name":"醤油","unit":"大さじ1(18g)","calories":13,"category":"調味料"},{"id":124,"name":"砂糖","unit":"大さじ1(9g)","calories":35,"category":"調味料"},{"id":125,"name":"みりん","unit":"大さじ1(18g)","calories":43,"category":"調味料"},{"id":126,"name":"ケチャップ","unit":"大さじ1(15g)","calories":18,"category":"調味料"},{"id":127,"name":"ウスターソース","unit":"大さじ1(18g)","calories":21,"category":"調味料"},{"id":128,"name":"プロテイン（ホエイ）","unit":"1食(30g)","calories":120,"category":"サプリ"},{"id":129,"name":"プロテイン（ソイ）","unit":"1食(30g)","calories":110,"category":"サプリ"},{"id":130,"name":"カシューナッツ","unit":"10粒(15g)","calories":87,"category":"ナッツ"},{"id":131,"name":"アーモンド","unit":"10粒(15g)","calories":89,"category":"ナッツ"},{"id":132,"name":"くるみ","unit":"5粒(15g)","calories":103,"category":"ナッツ"},{"id":133,"name":"ピーナッツ","unit":"10粒(15g)","calories":89,"category":"ナッツ"},{"id":134,"name":"ピーナッツバター","unit":"大さじ1(16g)","calories":96,"category":"ナッツ"},{"id":135,"name":"コーヒー（ブラック）","unit":"1杯(200ml)","calories":8,"category":"飲み物"},{"id":136,"name":"コーヒー（砂糖・ミルク入り）","unit":"1杯(200ml)","calories":56,"category":"飲み物"},{"id":137,"name":"緑茶","unit":"1杯(200ml)","calories":4,"category":"飲み物"},{"id":138,"name":"オレンジジュース","unit":"200ml","calories":84,"category":"飲み物"},{"id":139,"name":"スポーツドリンク","unit":"500ml","calories":125,"category":"飲み物"},{"id":140,"name":"ビール","unit":"1缶(350ml)","calories":141,"category":"飲み物"},{"id":141,"name":"ハイボール","unit":"1杯(350ml)","calories":105,"category":"飲み物"},{"id":142,"name":"ワイン（赤）","unit":"1杯(120ml)","calories":88,"category":"飲み物"},{"id":143,"name":"日本酒","unit":"1合(180ml)","calories":196,"category":"飲み物"},{"id":144,"name":"チョコレート（ミルク）","unit":"1枚(50g)","calories":278,"category":"菓子"},{"id":145,"name":"チョコレート（ダーク）","unit":"1枚(50g)","calories":271,"category":"菓子"},{"id":146,"name":"ポテトチップス","unit":"1袋(60g)","calories":336,"category":"菓子"},{"id":147,"name":"アイスクリーム","unit":"1個(100g)","calories":212,"category":"菓子"},{"id":148,"name":"プリン","unit":"1個(100g)","calories":126,"category":"菓子"},{"id":149,"name":"どら焼き","unit":"1個(80g)","calories":238,"category":"菓子"},{"id":150,"name":"ショートケーキ","unit":"1個(120g)","calories":356,"category":"菓子"},{"id":151,"name":"もち麦","unit":"50g","calories":160,"category":"穀類"},{"id":152,"name":"雑穀米","unit":"茶碗1杯(150g)","calories":248,"category":"穀類"},{"id":153,"name":"十六穀米","unit":"茶碗1杯(150g)","calories":245,"category":"穀類"},{"id":154,"name":"ビーフン","unit":"1人前(70g)","calories":260,"category":"穀類"},{"id":155,"name":"フォー","unit":"1人前(70g)","calories":252,"category":"穀類"},{"id":156,"name":"春雨（乾燥）","unit":"1人前(30g)","calories":103,"category":"穀類"},{"id":157,"name":"そうめん（茹で）","unit":"1束(100g)","calories":127,"category":"穀類"},{"id":158,"name":"冷麦（茹で）","unit":"1人前(200g)","calories":254,"category":"穀類"},{"id":159,"name":"米粉パン","unit":"1枚(60g)","calories":148,"category":"穀類"},{"id":160,"name":"ライ麦パン","unit":"1枚(60g)","calories":158,"category":"穀類"},{"id":161,"name":"全粒粉パン","unit":"1枚(60g)","calories":155,"category":"穀類"},{"id":162,"name":"ベーグル","unit":"1個(100g)","calories":270,"category":"穀類"},{"id":163,"name":"イングリッシュマフィン","unit":"1個(60g)","calories":148,"category":"穀類"},{"id":164,"name":"ピタパン","unit":"1枚(65g)","calories":170,"category":"穀類"},{"id":165,"name":"ナン","unit":"1枚(80g)","calories":232,"category":"穀類"},{"id":166,"name":"コーン（缶詰）","unit":"1/2缶(100g)","calories":91,"category":"野菜"},{"id":167,"name":"枝豆（冷凍）","unit":"1/2袋(100g)","calories":135,"category":"野菜"},{"id":168,"name":"そら豆","unit":"10粒(100g)","calories":108,"category":"野菜"},{"id":169,"name":"グリーンピース","unit":"大さじ3(50g)","calories":53,"category":"野菜"},{"id":170,"name":"オクラ","unit":"5本(50g)","calories":15,"category":"野菜"},{"id":171,"name":"セロリ","unit":"1本(100g)","calories":15,"category":"野菜"},{"id":172,"name":"アスパラガス","unit":"3本(60g)","calories":13,"category":"野菜"},{"id":173,"name":"スナップエンドウ","unit":"10個(50g)","calories":22,"category":"野菜"},{"id":174,"name":"いんげん","unit":"10本(50g)","calories":14,"category":"野菜"},{"id":175,"name":"チンゲン菜","unit":"1株(100g)","calories":13,"category":"野菜"},{"id":176,"name":"水菜","unit":"1袋(200g)","calories":44,"category":"野菜"},{"id":177,"name":"春菊","unit":"1袋(200g)","calories":44,"category":"野菜"},{"id":178,"name":"三つ葉","unit":"1束(30g)","calories":7,"category":"野菜"},{"id":179,"name":"しそ","unit":"5枚(5g)","calories":2,"category":"野菜"},{"id":180,"name":"にんにく","unit":"1かけ(5g)","calories":7,"category":"野菜"},{"id":181,"name":"しょうが","unit":"1かけ(10g)","calories":4,"category":"野菜"},{"id":182,"name":"とうがらし","unit":"1本(2g)","calories":6,"category":"野菜"},{"id":183,"name":"ズッキーニ","unit":"1本(150g)","calories":24,"category":"野菜"},{"id":184,"name":"パセリ","unit":"大さじ1(5g)","calories":2,"category":"野菜"},{"id":185,"name":"バジル","unit":"5枚(5g)","calories":2,"category":"野菜"},{"id":186,"name":"ルッコラ","unit":"1袋(50g)","calories":11,"category":"野菜"},{"id":187,"name":"豆苗","unit":"1袋(100g)","calories":27,"category":"野菜"},{"id":188,"name":"かいわれ大根","unit":"1パック(50g)","calories":14,"category":"野菜"},{"id":189,"name":"わかめ（生）","unit":"50g","calories":8,"category":"海藻"},{"id":190,"name":"めかぶ","unit":"1パック(40g)","calories":6,"category":"海藻"},{"id":191,"name":"もずく","unit":"1パック(70g)","calories":5,"category":"海藻"},{"id":192,"name":"昆布","unit":"5g","calories":8,"category":"海藻"},{"id":193,"name":"のり（1枚）","unit":"1枚(3g)","calories":6,"category":"海藻"},{"id":194,"name":"ひじき（乾燥）","unit":"大さじ1(5g)","calories":9,"category":"海藻"},{"id":195,"name":"まいたけ","unit":"1パック(100g)","calories":15,"category":"きのこ"},{"id":196,"name":"なめこ","unit":"1袋(100g)","calories":14,"category":"きのこ"},{"id":197,"name":"マッシュルーム","unit":"4個(80g)","calories":13,"category":"きのこ"},{"id":198,"name":"舞茸","unit":"1パック(100g)","calories":15,"category":"きのこ"},{"id":199,"name":"木耳（キクラゲ）","unit":"乾燥5g","calories":12,"category":"きのこ"},{"id":200,"name":"鴨肉","unit":"100g","calories":333,"category":"肉類"},{"id":201,"name":"ラム肉","unit":"100g","calories":287,"category":"肉類"},{"id":202,"name":"馬肉","unit":"100g","calories":110,"category":"肉類"},{"id":203,"name":"豚タン","unit":"100g","calories":262,"category":"肉類"},{"id":204,"name":"牛タン","unit":"100g","calories":318,"category":"肉類"},{"id":205,"name":"豚肩ロース","unit":"100g","calories":253,"category":"肉類"},{"id":206,"name":"牛サーロイン","unit":"100g","calories":460,"category":"肉類"},{"id":207,"name":"牛ヒレ","unit":"100g","calories":223,"category":"肉類"},{"id":208,"name":"牛バラ","unit":"100g","calories":472,"category":"肉類"},{"id":209,"name":"鶏せせり","unit":"100g","calories":197,"category":"肉類"},{"id":210,"name":"鶏手羽元","unit":"1本(60g)","calories":114,"category":"肉類"},{"id":211,"name":"鶏手羽先","unit":"1本(40g)","calories":89,"category":"肉類"},{"id":212,"name":"砂肝","unit":"100g","calories":94,"category":"肉類"},{"id":213,"name":"牛ハツ","unit":"100g","calories":142,"category":"肉類"},{"id":214,"name":"フランクフルト","unit":"1本(80g)","calories":243,"category":"肉類"},{"id":215,"name":"サラミ","unit":"5枚(20g)","calories":83,"category":"肉類"},{"id":216,"name":"コンビーフ","unit":"1/4缶(50g)","calories":101,"category":"肉類"},{"id":217,"name":"スモークサーモン","unit":"50g","calories":80,"category":"魚介類"},{"id":218,"name":"鯛（生）","unit":"100g","calories":142,"category":"魚介類"},{"id":219,"name":"ヒラメ","unit":"100g","calories":103,"category":"魚介類"},{"id":220,"name":"カレイ","unit":"100g","calories":95,"category":"魚介類"},{"id":221,"name":"キンメダイ","unit":"100g","calories":160,"category":"魚介類"},{"id":222,"name":"メカジキ","unit":"100g","calories":153,"category":"魚介類"},{"id":223,"name":"シラス","unit":"大さじ2(20g)","calories":23,"category":"魚介類"},{"id":224,"name":"桜海老（乾燥）","unit":"大さじ1(5g)","calories":16,"category":"魚介類"},{"id":225,"name":"するめ","unit":"20g","calories":66,"category":"魚介類"},{"id":226,"name":"カニ（ズワイ）","unit":"100g","calories":65,"category":"魚介類"},{"id":227,"name":"牡蠣","unit":"5個(100g)","calories":60,"category":"魚介類"},{"id":228,"name":"しじみ","unit":"20個(50g)","calories":28,"category":"魚介類"},{"id":229,"name":"海老（ブラックタイガー）","unit":"3尾(60g)","calories":50,"category":"魚介類"},{"id":230,"name":"ロブスター","unit":"100g","calories":90,"category":"魚介類"},{"id":231,"name":"うなぎ（蒲焼き）","unit":"1串(100g)","calories":293,"category":"魚介類"},{"id":232,"name":"アンチョビ","unit":"5枚(15g)","calories":28,"category":"魚介類"},{"id":233,"name":"イワシ缶（味噌煮）","unit":"1缶(100g)","calories":212,"category":"魚介類"},{"id":234,"name":"鮭フレーク","unit":"大さじ2(20g)","calories":38,"category":"魚介類"},{"id":235,"name":"たらこ（スパゲッティ用）","unit":"1人前(30g)","calories":41,"category":"魚介類"},{"id":236,"name":"スキムミルク","unit":"大さじ2(12g)","calories":43,"category":"乳製品"},{"id":237,"name":"パルメザンチーズ","unit":"大さじ1(6g)","calories":26,"category":"乳製品"},{"id":238,"name":"ゴーダチーズ","unit":"1枚(20g)","calories":76,"category":"乳製品"},{"id":239,"name":"カマンベールチーズ","unit":"30g","calories":92,"category":"乳製品"},{"id":240,"name":"クリームチーズ","unit":"大さじ1(15g)","calories":52,"category":"乳製品"},{"id":241,"name":"リコッタチーズ","unit":"50g","calories":73,"category":"乳製品"},{"id":242,"name":"ホイップクリーム","unit":"大さじ1(15g)","calories":53,"category":"乳製品"},{"id":243,"name":"コンデンスミルク","unit":"大さじ1(21g)","calories":66,"category":"乳製品"},{"id":244,"name":"豆腐（充填）","unit":"1丁(150g)","calories":84,"category":"大豆製品"},{"id":245,"name":"高野豆腐","unit":"1枚(16g)","calories":84,"category":"大豆製品"},{"id":246,"name":"がんもどき","unit":"1個(100g)","calories":228,"category":"大豆製品"},{"id":247,"name":"おから","unit":"100g","calories":111,"category":"大豆製品"},{"id":248,"name":"味噌（赤）","unit":"大さじ1(18g)","calories":35,"category":"調味料"},{"id":249,"name":"白みそ","unit":"大さじ1(18g)","calories":36,"category":"調味料"},{"id":250,"name":"ポン酢","unit":"大さじ1(15g)","calories":14,"category":"調味料"},{"id":251,"name":"めんつゆ（2倍濃縮）","unit":"大さじ1(15g)","calories":18,"category":"調味料"},{"id":252,"name":"オイスターソース","unit":"大さじ1(18g)","calories":19,"category":"調味料"},{"id":253,"name":"豆板醤","unit":"小さじ1(6g)","calories":8,"category":"調味料"},{"id":254,"name":"テンメンジャン","unit":"大さじ1(18g)","calories":41,"category":"調味料"},{"id":255,"name":"コチュジャン","unit":"大さじ1(18g)","calories":34,"category":"調味料"},{"id":256,"name":"カレー粉","unit":"小さじ1(3g)","calories":9,"category":"調味料"},{"id":257,"name":"はちみつ","unit":"大さじ1(21g)","calories":62,"category":"調味料"},{"id":258,"name":"酢","unit":"大さじ1(15g)","calories":3,"category":"調味料"},{"id":259,"name":"レモン汁","unit":"大さじ1(15g)","calories":4,"category":"調味料"},{"id":260,"name":"トマト缶（ホール）","unit":"1/2缶(200g)","calories":38,"category":"調味料"},{"id":261,"name":"ピーナッツオイル","unit":"大さじ1(12g)","calories":111,"category":"油脂"},{"id":262,"name":"ラード","unit":"大さじ1(12g)","calories":111,"category":"油脂"},{"id":263,"name":"ココナッツオイル","unit":"大さじ1(12g)","calories":111,"category":"油脂"},{"id":264,"name":"マーガリン","unit":"10g","calories":75,"category":"油脂"},{"id":265,"name":"胡麻（白）","unit":"大さじ1(9g)","calories":54,"category":"その他"},{"id":266,"name":"胡麻（黒）","unit":"大さじ1(9g)","calories":54,"category":"その他"},{"id":267,"name":"松の実","unit":"大さじ1(10g)","calories":70,"category":"ナッツ"},{"id":268,"name":"マカダミアナッツ","unit":"10粒(15g)","calories":109,"category":"ナッツ"},{"id":269,"name":"ヘーゼルナッツ","unit":"10粒(15g)","calories":99,"category":"ナッツ"},{"id":270,"name":"ひまわりの種","unit":"大さじ1(10g)","calories":60,"category":"ナッツ"},{"id":271,"name":"かぼちゃの種","unit":"大さじ1(10g)","calories":59,"category":"ナッツ"},{"id":272,"name":"チアシード","unit":"大さじ1(10g)","calories":49,"category":"ナッツ"},{"id":273,"name":"亜麻仁種","unit":"大さじ1(10g)","calories":53,"category":"ナッツ"},{"id":274,"name":"プルーン","unit":"3個(30g)","calories":61,"category":"果物"},{"id":275,"name":"レーズン","unit":"大さじ2(20g)","calories":62,"category":"果物"},{"id":276,"name":"ドライマンゴー","unit":"30g","calories":99,"category":"果物"},{"id":277,"name":"桃","unit":"1個(200g)","calories":80,"category":"果物"},{"id":278,"name":"なし","unit":"1個(250g)","calories":108,"category":"果物"},{"id":279,"name":"柿","unit":"1個(170g)","calories":102,"category":"果物"},{"id":280,"name":"メロン","unit":"1/4個(200g)","calories":80,"category":"果物"},{"id":281,"name":"いちじく","unit":"2個(100g)","calories":54,"category":"果物"},{"id":282,"name":"グレープフルーツ","unit":"1/2個(150g)","calories":60,"category":"果物"},{"id":283,"name":"ブルーベリー","unit":"1/2カップ(75g)","calories":43,"category":"果物"},{"id":284,"name":"さくらんぼ","unit":"10粒(80g)","calories":45,"category":"果物"},{"id":285,"name":"ライチ","unit":"5粒(60g)","calories":38,"category":"果物"},{"id":286,"name":"マンゴー","unit":"1/2個(150g)","calories":98,"category":"果物"},{"id":287,"name":"パパイヤ","unit":"1/2個(200g)","calories":74,"category":"果物"},{"id":288,"name":"パイナップル","unit":"1切れ(100g)","calories":53,"category":"果物"},{"id":289,"name":"緑豆","unit":"50g","calories":171,"category":"豆類"},{"id":290,"name":"レンズ豆","unit":"50g","calories":171,"category":"豆類"},{"id":291,"name":"ひよこ豆（水煮）","unit":"50g","calories":84,"category":"豆類"},{"id":292,"name":"黒豆（水煮）","unit":"50g","calories":90,"category":"豆類"},{"id":293,"name":"大豆（水煮）","unit":"50g","calories":90,"category":"豆類"},{"id":294,"name":"金時豆（水煮）","unit":"50g","calories":86,"category":"豆類"},{"id":295,"name":"緑茶（ペットボトル）","unit":"500ml","calories":10,"category":"飲み物"},{"id":296,"name":"麦茶","unit":"500ml","calories":0,"category":"飲み物"},{"id":297,"name":"ほうじ茶","unit":"500ml","calories":0,"category":"飲み物"},{"id":298,"name":"豆乳ラテ","unit":"200ml","calories":100,"category":"飲み物"},{"id":299,"name":"甘酒","unit":"1杯(200ml)","calories":130,"category":"飲み物"},{"id":300,"name":"プロテインバー","unit":"1本(60g)","calories":220,"category":"サプリ"},{"id":301,"name":"BCAAドリンク","unit":"1杯(300ml)","calories":20,"category":"サプリ"},{"id":302,"name":"クレアチン","unit":"5g","calories":0,"category":"サプリ"},{"id":303,"name":"マルトデキストリン","unit":"30g","calories":114,"category":"サプリ"},{"id":304,"name":"カゼインプロテイン","unit":"1食(30g)","calories":110,"category":"サプリ"},{"id":305,"name":"ミックスベジタブル（冷凍）","unit":"100g","calories":65,"category":"野菜"},{"id":306,"name":"ほうれん草（冷凍）","unit":"100g","calories":20,"category":"野菜"},{"id":307,"name":"ブロッコリー（冷凍）","unit":"100g","calories":33,"category":"野菜"},{"id":308,"name":"カリフラワー","unit":"1/4個(100g)","calories":28,"category":"野菜"},{"id":309,"name":"芽キャベツ","unit":"5個(50g)","calories":28,"category":"野菜"},{"id":310,"name":"ラディッシュ","unit":"5個(50g)","calories":9,"category":"野菜"},{"id":311,"name":"白菜","unit":"1/8個(200g)","calories":28,"category":"野菜"},{"id":312,"name":"高菜","unit":"50g","calories":11,"category":"野菜"},{"id":313,"name":"わさび菜","unit":"50g","calories":13,"category":"野菜"},{"id":314,"name":"クレソン","unit":"30g","calories":7,"category":"野菜"},{"id":315,"name":"ケール","unit":"50g","calories":22,"category":"野菜"},{"id":316,"name":"スイスチャード","unit":"50g","calories":11,"category":"野菜"},{"id":317,"name":"山芋（とろろ）","unit":"100g","calories":65,"category":"芋類"},{"id":318,"name":"タロイモ","unit":"100g","calories":94,"category":"芋類"},{"id":319,"name":"ヤーコン","unit":"100g","calories":54,"category":"芋類"},{"id":320,"name":"きくいも","unit":"100g","calories":55,"category":"芋類"},{"id":321,"name":"くり","unit":"5個(100g)","calories":164,"category":"芋類"},{"id":322,"name":"タピオカ（茹で）","unit":"50g","calories":81,"category":"穀類"},{"id":323,"name":"クスクス","unit":"50g（乾燥）","calories":178,"category":"穀類"},{"id":324,"name":"キヌア","unit":"50g（乾燥）","calories":185,"category":"穀類"},{"id":325,"name":"アマランサス","unit":"50g（乾燥）","calories":187,"category":"穀類"},{"id":326,"name":"そば粉","unit":"大さじ2(20g)","calories":69,"category":"穀類"},{"id":327,"name":"小麦粉（薄力粉）","unit":"大さじ2(20g)","calories":71,"category":"穀類"},{"id":328,"name":"片栗粉","unit":"大さじ1(9g)","calories":33,"category":"穀類"},{"id":329,"name":"パン粉","unit":"大さじ2(14g)","calories":52,"category":"穀類"},{"id":330,"name":"生麩","unit":"50g","calories":90,"category":"穀類"},{"id":331,"name":"麦芽糖","unit":"大さじ1(15g)","calories":55,"category":"調味料"},{"id":332,"name":"てんさい糖","unit":"大さじ1(9g)","calories":34,"category":"調味料"},{"id":333,"name":"きび砂糖","unit":"大さじ1(9g)","calories":34,"category":"調味料"},{"id":334,"name":"オリゴ糖","unit":"大さじ1(15g)","calories":34,"category":"調味料"},{"id":335,"name":"アガベシロップ","unit":"大さじ1(21g)","calories":60,"category":"調味料"},{"id":336,"name":"メープルシロップ","unit":"大さじ1(21g)","calories":56,"category":"調味料"},{"id":337,"name":"塩麹","unit":"大さじ1(18g)","calories":25,"category":"調味料"},{"id":338,"name":"甜麺醤","unit":"大さじ1(18g)","calories":41,"category":"調味料"},{"id":339,"name":"バルサミコ酢","unit":"大さじ1(15g)","calories":20,"category":"調味料"},{"id":340,"name":"タバスコ","unit":"数滴(5g)","calories":1,"category":"調味料"},{"id":341,"name":"ナンプラー","unit":"大さじ1(15g)","calories":11,"category":"調味料"},{"id":342,"name":"コンソメ（1個）","unit":"1個(5g)","calories":11,"category":"調味料"},{"id":343,"name":"鶏がらスープの素","unit":"小さじ1(5g)","calories":12,"category":"調味料"},{"id":344,"name":"ほんだし","unit":"小さじ1(4g)","calories":9,"category":"調味料"},{"id":345,"name":"トマトペースト","unit":"大さじ1(18g)","calories":16,"category":"調味料"},{"id":346,"name":"カルピス（原液）","unit":"大さじ2(30ml)","calories":60,"category":"飲み物"},{"id":347,"name":"コーラ（350ml）","unit":"350ml","calories":143,"category":"飲み物"},{"id":348,"name":"サイダー（350ml）","unit":"350ml","calories":140,"category":"飲み物"},{"id":349,"name":"エナジードリンク","unit":"1缶(250ml)","calories":113,"category":"飲み物"},{"id":350,"name":"コールドブリューコーヒー","unit":"200ml","calories":8,"category":"飲み物"},{"id":351,"name":"ホットチョコレート","unit":"1杯(200ml)","calories":150,"category":"飲み物"},{"id":352,"name":"抹茶ラテ","unit":"1杯(200ml)","calories":120,"category":"飲み物"},{"id":353,"name":"豆乳（低糖）","unit":"200ml","calories":80,"category":"飲み物"},{"id":354,"name":"アーモンドミルク","unit":"200ml","calories":40,"category":"飲み物"},{"id":355,"name":"オーツミルク","unit":"200ml","calories":90,"category":"飲み物"},{"id":356,"name":"焼酎（25度）","unit":"1合(180ml)","calories":259,"category":"飲み物"},{"id":357,"name":"梅酒","unit":"1杯(60ml)","calories":77,"category":"飲み物"},{"id":358,"name":"チューハイ（350ml）","unit":"350ml","calories":167,"category":"飲み物"},{"id":359,"name":"発泡酒（350ml）","unit":"350ml","calories":158,"category":"飲み物"},{"id":360,"name":"ノンアルコールビール","unit":"350ml","calories":35,"category":"飲み物"},{"id":361,"name":"グラノーラ","unit":"1食(50g)","calories":224,"category":"穀類"},{"id":362,"name":"玄米フレーク","unit":"1食(40g)","calories":152,"category":"穀類"},{"id":363,"name":"ミューズリー","unit":"1食(50g)","calories":185,"category":"穀類"},{"id":364,"name":"クラッカー","unit":"5枚(25g)","calories":103,"category":"菓子"},{"id":365,"name":"おせんべい（醤油）","unit":"2枚(20g)","calories":76,"category":"菓子"},{"id":366,"name":"ポップコーン","unit":"1袋(50g)","calories":222,"category":"菓子"},{"id":367,"name":"グミ","unit":"1袋(50g)","calories":165,"category":"菓子"},{"id":368,"name":"マシュマロ","unit":"5個(25g)","calories":82,"category":"菓子"},{"id":369,"name":"ガム（1枚）","unit":"1枚(3g)","calories":8,"category":"菓子"},{"id":370,"name":"飴","unit":"1個(5g)","calories":19,"category":"菓子"},{"id":371,"name":"柿の種","unit":"1袋(40g)","calories":195,"category":"菓子"},{"id":372,"name":"おかき","unit":"4個(30g)","calories":117,"category":"菓子"},{"id":373,"name":"クッキー","unit":"3枚(30g)","calories":148,"category":"菓子"},{"id":374,"name":"マカロン","unit":"2個(30g)","calories":126,"category":"菓子"},{"id":375,"name":"フィナンシェ","unit":"1個(40g)","calories":166,"category":"菓子"},{"id":376,"name":"ドーナツ","unit":"1個(60g)","calories":220,"category":"菓子"},{"id":377,"name":"シュークリーム","unit":"1個(80g)","calories":200,"category":"菓子"},{"id":378,"name":"大福","unit":"1個(60g)","calories":142,"category":"菓子"},{"id":379,"name":"みたらし団子","unit":"1串(65g)","calories":135,"category":"菓子"},{"id":380,"name":"わらびもち","unit":"1人前(100g)","calories":134,"category":"菓子"},{"id":381,"name":"パンナコッタ","unit":"1個(100g)","calories":180,"category":"菓子"},{"id":382,"name":"ティラミス","unit":"1人前(100g)","calories":280,"category":"菓子"},{"id":383,"name":"チーズケーキ","unit":"1切れ(100g)","calories":315,"category":"菓子"},{"id":384,"name":"モンブラン","unit":"1個(100g)","calories":320,"category":"菓子"},{"id":385,"name":"ブラウニー","unit":"1個(50g)","calories":210,"category":"菓子"},{"id":386,"name":"レアチーズケーキ","unit":"1切れ(100g)","calories":290,"category":"菓子"},{"id":387,"name":"たくあん","unit":"3切れ(30g)","calories":22,"category":"漬物"},{"id":388,"name":"梅干し","unit":"1個(10g)","calories":3,"category":"漬物"},{"id":389,"name":"キムチ","unit":"50g","calories":24,"category":"漬物"},{"id":390,"name":"ぬか漬け（きゅうり）","unit":"1本分(50g)","calories":8,"category":"漬物"},{"id":391,"name":"塩昆布","unit":"大さじ1(10g)","calories":18,"category":"漬物"},{"id":392,"name":"らっきょう","unit":"5粒(30g)","calories":33,"category":"漬物"},{"id":393,"name":"紅生姜","unit":"大さじ1(10g)","calories":3,"category":"漬物"},{"id":394,"name":"豆板醤キムチ鍋スープ","unit":"1人前(200ml)","calories":60,"category":"調味料"},{"id":395,"name":"コーンスターチ","unit":"大さじ1(9g)","calories":33,"category":"調味料"},{"id":396,"name":"ベーキングパウダー","unit":"小さじ1(4g)","calories":3,"category":"調味料"},{"id":397,"name":"ドライイースト","unit":"小さじ1(4g)","calories":11,"category":"調味料"},{"id":398,"name":"クリームコーン（缶）","unit":"1缶(430g)","calories":306,"category":"野菜"},{"id":399,"name":"トマトジュース","unit":"200ml","calories":38,"category":"飲み物"},{"id":400,"name":"野菜ジュース","unit":"200ml","calories":74,"category":"飲み物"},{"id":401,"name":"にんじんジュース","unit":"200ml","calories":70,"category":"飲み物"},{"id":402,"name":"スムージー（市販）","unit":"200ml","calories":120,"category":"飲み物"},{"id":403,"name":"プロテインゼリー","unit":"1個(180g)","calories":80,"category":"サプリ"},{"id":404,"name":"ビタミンCサプリ","unit":"1粒","calories":2,"category":"サプリ"},{"id":405,"name":"フィッシュオイル（サプリ）","unit":"1粒","calories":10,"category":"サプリ"},{"id":406,"name":"マルチビタミン","unit":"1粒","calories":5,"category":"サプリ"},{"id":407,"name":"EAAドリンク","unit":"1杯(300ml)","calories":25,"category":"サプリ"},{"id":408,"name":"コラーゲンドリンク","unit":"1本(50ml)","calories":20,"category":"サプリ"},{"id":409,"name":"鶏軟骨","unit":"100g","calories":54,"category":"肉類"},{"id":410,"name":"豚耳（ミミガー）","unit":"100g","calories":132,"category":"肉類"},{"id":411,"name":"牛すじ","unit":"100g","calories":155,"category":"肉類"},{"id":412,"name":"もつ（豚）","unit":"100g","calories":171,"category":"肉類"},{"id":413,"name":"白子（タラ）","unit":"100g","calories":62,"category":"魚介類"},{"id":414,"name":"なまこ","unit":"100g","calories":20,"category":"魚介類"},{"id":415,"name":"うに","unit":"大さじ1(15g)","calories":23,"category":"魚介類"},{"id":416,"name":"数の子","unit":"50g","calories":63,"category":"魚介類"},{"id":417,"name":"キャビア","unit":"小さじ1(5g)","calories":13,"category":"魚介類"},{"id":418,"name":"ほや","unit":"100g","calories":28,"category":"魚介類"},{"id":419,"name":"かまぼこ","unit":"2切れ(40g)","calories":38,"category":"加工食品"},{"id":420,"name":"ちくわ","unit":"1本(30g)","calories":37,"category":"加工食品"},{"id":421,"name":"はんぺん","unit":"1/2枚(50g)","calories":57,"category":"加工食品"},{"id":422,"name":"さつま揚げ","unit":"1枚(50g)","calories":70,"category":"加工食品"},{"id":423,"name":"魚肉ソーセージ","unit":"1本(90g)","calories":139,"category":"加工食品"},{"id":424,"name":"スパム（缶）","unit":"100g","calories":305,"category":"加工食品"},{"id":425,"name":"コーンドビーフ","unit":"1/4缶(50g)","calories":99,"category":"加工食品"},{"id":426,"name":"いなり揚げ（味付き）","unit":"2枚(40g)","calories":106,"category":"加工食品"},{"id":427,"name":"油麩","unit":"1個(15g)","calories":59,"category":"加工食品"},{"id":428,"name":"凍り豆腐（水戻し）","unit":"1枚(80g)","calories":124,"category":"大豆製品"},{"id":429,"name":"豆腐そうめん","unit":"1人前(150g)","calories":84,"category":"大豆製品"},{"id":430,"name":"大豆ミート（乾燥）","unit":"50g","calories":178,"category":"大豆製品"},{"id":431,"name":"テンペ","unit":"100g","calories":193,"category":"大豆製品"},{"id":432,"name":"湯葉","unit":"50g","calories":108,"category":"大豆製品"},{"id":433,"name":"おから（炒り）","unit":"50g","calories":63,"category":"大豆製品"},{"id":434,"name":"豆乳ヨーグルト","unit":"100g","calories":56,"category":"大豆製品"},{"id":435,"name":"アボカドオイル","unit":"大さじ1(12g)","calories":111,"category":"油脂"},{"id":436,"name":"MCTオイル","unit":"大さじ1(12g)","calories":111,"category":"油脂"},{"id":437,"name":"えごま油","unit":"大さじ1(12g)","calories":111,"category":"油脂"},{"id":438,"name":"グレープシードオイル","unit":"大さじ1(12g)","calories":111,"category":"油脂"},{"id":439,"name":"バターオイル","unit":"大さじ1(12g)","calories":92,"category":"油脂"},{"id":440,"name":"ギー","unit":"大さじ1(12g)","calories":108,"category":"油脂"},{"id":441,"name":"ブラックコーヒー（缶）","unit":"1缶(185ml)","calories":8,"category":"飲み物"},{"id":442,"name":"カフェラテ（市販）","unit":"1本(200ml)","calories":100,"category":"飲み物"},{"id":443,"name":"カプチーノ","unit":"1杯(150ml)","calories":72,"category":"飲み物"},{"id":444,"name":"フラペチーノ（市販）","unit":"1本(240ml)","calories":232,"category":"飲み物"},{"id":445,"name":"チャイ","unit":"1杯(200ml)","calories":90,"category":"飲み物"},{"id":446,"name":"ほうじ茶ラテ","unit":"1杯(200ml)","calories":80,"category":"飲み物"},{"id":447,"name":"抹茶","unit":"小さじ1(2g)","calories":6,"category":"飲み物"},{"id":448,"name":"白湯","unit":"200ml","calories":0,"category":"飲み物"},{"id":449,"name":"炭酸水","unit":"500ml","calories":0,"category":"飲み物"},{"id":450,"name":"ミネラルウォーター","unit":"500ml","calories":0,"category":"飲み物"}];
+const _RECIPES_DATA=[{"id":1,"name":"目玉焼き","unit":"1個","calories":100,"category":"卵料理"},{"id":2,"name":"スクランブルエッグ","unit":"1人前(卵2個)","calories":200,"category":"卵料理"},{"id":3,"name":"ゆで卵","unit":"1個","calories":91,"category":"卵料理"},{"id":4,"name":"玉子焼き","unit":"1人前(卵2個)","calories":160,"category":"卵料理"},{"id":5,"name":"オムレツ","unit":"1人前(卵2個)","calories":230,"category":"卵料理"},{"id":6,"name":"オムライス","unit":"1人前","calories":620,"category":"卵料理"},{"id":7,"name":"茶碗蒸し","unit":"1人前","calories":80,"category":"卵料理"},{"id":8,"name":"卵かけご飯","unit":"1人前","calories":340,"category":"卵料理"},{"id":9,"name":"親子丼","unit":"1人前","calories":580,"category":"丼・ご飯"},{"id":10,"name":"牛丼","unit":"1人前","calories":650,"category":"丼・ご飯"},{"id":11,"name":"豚丼","unit":"1人前","calories":600,"category":"丼・ご飯"},{"id":12,"name":"カツ丼","unit":"1人前","calories":780,"category":"丼・ご飯"},{"id":13,"name":"海鮮丼","unit":"1人前","calories":450,"category":"丼・ご飯"},{"id":14,"name":"天丼","unit":"1人前","calories":700,"category":"丼・ご飯"},{"id":15,"name":"チャーハン","unit":"1人前","calories":580,"category":"丼・ご飯"},{"id":16,"name":"おにぎり（梅）","unit":"1個","calories":170,"category":"丼・ご飯"},{"id":17,"name":"おにぎり（鮭）","unit":"1個","calories":185,"category":"丼・ご飯"},{"id":18,"name":"おにぎり（ツナマヨ）","unit":"1個","calories":210,"category":"丼・ご飯"},{"id":19,"name":"カレーライス","unit":"1人前","calories":700,"category":"丼・ご飯"},{"id":20,"name":"ハヤシライス","unit":"1人前","calories":650,"category":"丼・ご飯"},{"id":21,"name":"チキンカレー","unit":"1人前","calories":680,"category":"丼・ご飯"},{"id":22,"name":"ドライカレー","unit":"1人前","calories":620,"category":"丼・ご飯"},{"id":23,"name":"麻婆豆腐丼","unit":"1人前","calories":550,"category":"丼・ご飯"},{"id":24,"name":"鶏むね肉の塩焼き","unit":"1人前(150g)","calories":175,"category":"鶏肉料理"},{"id":25,"name":"鶏むね肉の醤油焼き","unit":"1人前(150g)","calories":195,"category":"鶏肉料理"},{"id":26,"name":"チキンソテー","unit":"1人前","calories":320,"category":"鶏肉料理"},{"id":27,"name":"唐揚げ","unit":"3個(150g)","calories":390,"category":"鶏肉料理"},{"id":28,"name":"鶏の照り焼き","unit":"1人前","calories":340,"category":"鶏肉料理"},{"id":29,"name":"サラダチキン（手作り）","unit":"1人前(150g)","calories":165,"category":"鶏肉料理"},{"id":30,"name":"バンバンジー","unit":"1人前","calories":220,"category":"鶏肉料理"},{"id":31,"name":"鶏ハム","unit":"1人前(100g)","calories":130,"category":"鶏肉料理"},{"id":32,"name":"チキンナゲット","unit":"5個","calories":270,"category":"鶏肉料理"},{"id":33,"name":"鶏鍋","unit":"1人前","calories":280,"category":"鶏肉料理"},{"id":34,"name":"豚の生姜焼き","unit":"1人前","calories":380,"category":"豚肉料理"},{"id":35,"name":"豚の塩焼き","unit":"1人前","calories":320,"category":"豚肉料理"},{"id":36,"name":"豚汁","unit":"1杯","calories":150,"category":"豚肉料理"},{"id":37,"name":"回鍋肉","unit":"1人前","calories":380,"category":"豚肉料理"},{"id":38,"name":"豚キムチ","unit":"1人前","calories":350,"category":"豚肉料理"},{"id":39,"name":"肉じゃが","unit":"1人前","calories":280,"category":"豚肉料理"},{"id":40,"name":"豚の角煮","unit":"1人前(100g)","calories":395,"category":"豚肉料理"},{"id":41,"name":"ポークソテー","unit":"1人前","calories":350,"category":"豚肉料理"},{"id":42,"name":"トンカツ","unit":"1枚","calories":510,"category":"豚肉料理"},{"id":43,"name":"ハンバーグ","unit":"1個","calories":380,"category":"ひき肉料理"},{"id":44,"name":"煮込みハンバーグ","unit":"1個","calories":400,"category":"ひき肉料理"},{"id":45,"name":"ミートボール","unit":"5個","calories":280,"category":"ひき肉料理"},{"id":46,"name":"ミートソーススパゲッティ","unit":"1人前","calories":620,"category":"パスタ"},{"id":47,"name":"カルボナーラ","unit":"1人前","calories":720,"category":"パスタ"},{"id":48,"name":"ペペロンチーノ","unit":"1人前","calories":490,"category":"パスタ"},{"id":49,"name":"ナポリタン","unit":"1人前","calories":540,"category":"パスタ"},{"id":50,"name":"トマトソーススパゲッティ","unit":"1人前","calories":480,"category":"パスタ"},{"id":51,"name":"たらこスパゲッティ","unit":"1人前","calories":560,"category":"パスタ"},{"id":52,"name":"ざるそば","unit":"1人前","calories":290,"category":"麺類"},{"id":53,"name":"かけそば","unit":"1人前","calories":310,"category":"麺類"},{"id":54,"name":"ざるうどん","unit":"1人前","calories":270,"category":"麺類"},{"id":55,"name":"かけうどん","unit":"1人前","calories":290,"category":"麺類"},{"id":56,"name":"焼きうどん","unit":"1人前","calories":480,"category":"麺類"},{"id":57,"name":"焼きそば","unit":"1人前","calories":480,"category":"麺類"},{"id":58,"name":"ラーメン（醤油）","unit":"1人前","calories":470,"category":"麺類"},{"id":59,"name":"ラーメン（豚骨）","unit":"1人前","calories":540,"category":"麺類"},{"id":60,"name":"ラーメン（味噌）","unit":"1人前","calories":510,"category":"麺類"},{"id":61,"name":"つけ麺","unit":"1人前","calories":580,"category":"麺類"},{"id":62,"name":"冷やし中華","unit":"1人前","calories":490,"category":"麺類"},{"id":63,"name":"焼き魚（鮭）","unit":"1切れ","calories":145,"category":"魚料理"},{"id":64,"name":"焼き魚（サバ）","unit":"1切れ","calories":260,"category":"魚料理"},{"id":65,"name":"焼き魚（アジ）","unit":"1尾","calories":130,"category":"魚料理"},{"id":66,"name":"煮魚（サバ）","unit":"1切れ","calories":280,"category":"魚料理"},{"id":67,"name":"刺身（マグロ5切れ）","unit":"1人前","calories":125,"category":"魚料理"},{"id":68,"name":"刺身（サーモン5切れ）","unit":"1人前","calories":145,"category":"魚料理"},{"id":69,"name":"刺身盛り合わせ","unit":"1人前","calories":200,"category":"魚料理"},{"id":70,"name":"エビフライ","unit":"3尾","calories":240,"category":"魚料理"},{"id":71,"name":"アジフライ","unit":"1尾","calories":230,"category":"魚料理"},{"id":72,"name":"サバの味噌煮","unit":"1切れ","calories":290,"category":"魚料理"},{"id":73,"name":"味噌汁（豆腐）","unit":"1杯","calories":40,"category":"汁物"},{"id":74,"name":"味噌汁（わかめ）","unit":"1杯","calories":25,"category":"汁物"},{"id":75,"name":"味噌汁（なめこ）","unit":"1杯","calories":30,"category":"汁物"},{"id":76,"name":"コーンスープ","unit":"1杯","calories":120,"category":"汁物"},{"id":77,"name":"ミネストローネ","unit":"1杯","calories":90,"category":"汁物"},{"id":78,"name":"クラムチャウダー","unit":"1杯","calories":160,"category":"汁物"},{"id":79,"name":"ポタージュ","unit":"1杯","calories":150,"category":"汁物"},{"id":80,"name":"豚汁（具だくさん）","unit":"1杯","calories":180,"category":"汁物"},{"id":81,"name":"野菜炒め","unit":"1人前","calories":180,"category":"炒め物"},{"id":82,"name":"もやし炒め","unit":"1人前","calories":90,"category":"炒め物"},{"id":83,"name":"チンジャオロース","unit":"1人前","calories":320,"category":"炒め物"},{"id":84,"name":"ニラレバ炒め","unit":"1人前","calories":250,"category":"炒め物"},{"id":85,"name":"麻婆豆腐","unit":"1人前","calories":280,"category":"炒め物"},{"id":86,"name":"エビチリ","unit":"1人前","calories":240,"category":"炒め物"},{"id":87,"name":"エビマヨ","unit":"1人前","calories":320,"category":"炒め物"},{"id":88,"name":"青椒肉絲","unit":"1人前","calories":310,"category":"炒め物"},{"id":89,"name":"ほうれん草のお浸し","unit":"1人前","calories":25,"category":"和え物・煮物"},{"id":90,"name":"小松菜のお浸し","unit":"1人前","calories":20,"category":"和え物・煮物"},{"id":91,"name":"ひじきの煮物","unit":"1人前","calories":60,"category":"和え物・煮物"},{"id":92,"name":"切り干し大根","unit":"1人前","calories":70,"category":"和え物・煮物"},{"id":93,"name":"かぼちゃの煮物","unit":"1人前","calories":110,"category":"和え物・煮物"},{"id":94,"name":"里芋の煮物","unit":"1人前","calories":100,"category":"和え物・煮物"},{"id":95,"name":"筑前煮","unit":"1人前","calories":160,"category":"和え物・煮物"},{"id":96,"name":"ポテトサラダ","unit":"1人前","calories":160,"category":"サラダ"},{"id":97,"name":"シーザーサラダ","unit":"1人前","calories":180,"category":"サラダ"},{"id":98,"name":"グリーンサラダ","unit":"1人前","calories":30,"category":"サラダ"},{"id":99,"name":"コールスロー","unit":"1人前","calories":110,"category":"サラダ"},{"id":100,"name":"マカロニサラダ","unit":"1人前","calories":180,"category":"サラダ"},{"id":101,"name":"トマトとモッツァレラのサラダ","unit":"1人前","calories":200,"category":"サラダ"},{"id":102,"name":"冷奴","unit":"1人前","calories":72,"category":"豆腐料理"},{"id":103,"name":"揚げ出し豆腐","unit":"1人前","calories":160,"category":"豆腐料理"},{"id":104,"name":"豆腐ステーキ","unit":"1人前","calories":130,"category":"豆腐料理"},{"id":105,"name":"納豆ご飯","unit":"1人前","calories":330,"category":"大豆料理"},{"id":106,"name":"餃子（焼き）","unit":"5個","calories":250,"category":"中華"},{"id":107,"name":"餃子（水）","unit":"5個","calories":220,"category":"中華"},{"id":108,"name":"春巻き","unit":"2本","calories":300,"category":"中華"},{"id":109,"name":"酢豚","unit":"1人前","calories":380,"category":"中華"},{"id":110,"name":"えびの天ぷら","unit":"2尾","calories":180,"category":"天ぷら"},{"id":111,"name":"野菜の天ぷら（かぼちゃ・なす等）","unit":"1人前","calories":200,"category":"天ぷら"},{"id":112,"name":"かき揚げ","unit":"1個","calories":270,"category":"天ぷら"},{"id":113,"name":"コロッケ","unit":"1個","calories":180,"category":"揚げ物"},{"id":114,"name":"メンチカツ","unit":"1個","calories":280,"category":"揚げ物"},{"id":115,"name":"チーズインハンバーグ","unit":"1個","calories":440,"category":"洋食"},{"id":116,"name":"ポークチャップ","unit":"1人前","calories":380,"category":"洋食"},{"id":117,"name":"ロールキャベツ","unit":"2個","calories":280,"category":"洋食"},{"id":118,"name":"グラタン","unit":"1人前","calories":380,"category":"洋食"},{"id":119,"name":"ドリア","unit":"1人前","calories":450,"category":"洋食"},{"id":120,"name":"ピザ（マルゲリータ）","unit":"1/4枚","calories":280,"category":"洋食"},{"id":121,"name":"ピザ（ミックス）","unit":"1/4枚","calories":320,"category":"洋食"},{"id":122,"name":"ホットケーキ","unit":"2枚","calories":380,"category":"朝食"},{"id":123,"name":"フレンチトースト","unit":"1枚","calories":220,"category":"朝食"},{"id":124,"name":"シリアル（牛乳付き）","unit":"1食","calories":280,"category":"朝食"},{"id":125,"name":"トースト（バター）","unit":"1枚","calories":195,"category":"朝食"},{"id":126,"name":"トースト（ジャム）","unit":"1枚","calories":180,"category":"朝食"},{"id":127,"name":"ヨーグルト＋フルーツ","unit":"1人前","calories":130,"category":"朝食"},{"id":128,"name":"バナナスムージー","unit":"1杯","calories":180,"category":"朝食"},{"id":129,"name":"プロテインシェイク（牛乳）","unit":"1杯","calories":260,"category":"プロテイン"},{"id":130,"name":"プロテインシェイク（水）","unit":"1杯","calories":120,"category":"プロテイン"},{"id":131,"name":"鍋（ちゃんこ）","unit":"1人前","calories":350,"category":"鍋"},{"id":132,"name":"鍋（水炊き）","unit":"1人前","calories":280,"category":"鍋"},{"id":133,"name":"鍋（キムチ）","unit":"1人前","calories":320,"category":"鍋"},{"id":134,"name":"鍋（豆乳）","unit":"1人前","calories":300,"category":"鍋"},{"id":135,"name":"寿司（マグロ）","unit":"2貫","calories":100,"category":"寿司"},{"id":136,"name":"寿司（サーモン）","unit":"2貫","calories":120,"category":"寿司"},{"id":137,"name":"寿司（えび）","unit":"2貫","calories":90,"category":"寿司"},{"id":138,"name":"寿司（たまご）","unit":"2貫","calories":110,"category":"寿司"},{"id":139,"name":"サンドイッチ（卵）","unit":"1個","calories":280,"category":"パン"},{"id":140,"name":"サンドイッチ（ツナ）","unit":"1個","calories":300,"category":"パン"},{"id":141,"name":"ハンバーガー","unit":"1個","calories":380,"category":"パン"},{"id":142,"name":"チーズバーガー","unit":"1個","calories":430,"category":"パン"},{"id":143,"name":"BLTサンド","unit":"1個","calories":380,"category":"パン"},{"id":144,"name":"焼き鳥（もも）","unit":"1本","calories":80,"category":"焼き鳥"},{"id":145,"name":"焼き鳥（ねぎま）","unit":"1本","calories":75,"category":"焼き鳥"},{"id":146,"name":"焼き鳥（つくね）","unit":"1本","calories":90,"category":"焼き鳥"},{"id":147,"name":"焼き鳥（砂肝）","unit":"1本","calories":55,"category":"焼き鳥"},{"id":148,"name":"焼き鳥（皮）","unit":"1本","calories":130,"category":"焼き鳥"},{"id":149,"name":"冷やっこ＋納豆","unit":"1人前","calories":150,"category":"低カロリー"},{"id":150,"name":"蒸し鶏サラダ","unit":"1人前","calories":180,"category":"低カロリー"},{"id":151,"name":"鶏むね肉の梅しそ焼き","unit":"1人前","calories":190,"category":"鶏肉料理"},{"id":152,"name":"鶏むね肉のピカタ","unit":"1人前","calories":280,"category":"鶏肉料理"},{"id":153,"name":"鶏むね肉のスパイス焼き","unit":"1人前","calories":185,"category":"鶏肉料理"},{"id":154,"name":"棒棒鶏（バンバンジー）","unit":"1人前","calories":220,"category":"鶏肉料理"},{"id":155,"name":"鶏むね肉のハーブ蒸し","unit":"1人前","calories":165,"category":"鶏肉料理"},{"id":156,"name":"チキンのトマト煮","unit":"1人前","calories":280,"category":"鶏肉料理"},{"id":157,"name":"鶏のレモン醤油焼き","unit":"1人前","calories":200,"category":"鶏肉料理"},{"id":158,"name":"チキンのバター醤油焼き","unit":"1人前","calories":310,"category":"鶏肉料理"},{"id":159,"name":"鶏そぼろ","unit":"1人前","calories":200,"category":"鶏肉料理"},{"id":160,"name":"鶏の水炊き","unit":"1人前","calories":250,"category":"鶏肉料理"},{"id":161,"name":"チキンのクリーム煮","unit":"1人前","calories":380,"category":"鶏肉料理"},{"id":162,"name":"手羽元の甘辛煮","unit":"3本","calories":280,"category":"鶏肉料理"},{"id":163,"name":"手羽先の塩焼き","unit":"3本","calories":250,"category":"鶏肉料理"},{"id":164,"name":"ささみのチーズ焼き","unit":"1人前","calories":190,"category":"鶏肉料理"},{"id":165,"name":"ささみのサラダ（蒸し）","unit":"1人前","calories":130,"category":"鶏肉料理"},{"id":166,"name":"豚ロースの味噌漬け焼き","unit":"1人前","calories":320,"category":"豚肉料理"},{"id":167,"name":"豚ヒレのソテー","unit":"1人前","calories":240,"category":"豚肉料理"},{"id":168,"name":"豚肉のしゃぶしゃぶ","unit":"1人前","calories":280,"category":"豚肉料理"},{"id":169,"name":"豚の塩麹焼き","unit":"1人前","calories":290,"category":"豚肉料理"},{"id":170,"name":"豚肉と野菜の炒め物","unit":"1人前","calories":280,"category":"豚肉料理"},{"id":171,"name":"豚バラ大根","unit":"1人前","calories":350,"category":"豚肉料理"},{"id":172,"name":"酢豚（家庭風）","unit":"1人前","calories":380,"category":"豚肉料理"},{"id":173,"name":"ポークビーンズ","unit":"1人前","calories":300,"category":"豚肉料理"},{"id":174,"name":"豚肉のオイスターソース炒め","unit":"1人前","calories":320,"category":"豚肉料理"},{"id":175,"name":"豚肉のカレー炒め","unit":"1人前","calories":350,"category":"豚肉料理"},{"id":176,"name":"牛肉の時雨煮","unit":"1人前","calories":280,"category":"牛肉料理"},{"id":177,"name":"牛肉と野菜の炒め物","unit":"1人前","calories":340,"category":"牛肉料理"},{"id":178,"name":"牛肉のしぐれ煮","unit":"1人前","calories":280,"category":"牛肉料理"},{"id":179,"name":"すき焼き","unit":"1人前","calories":480,"category":"牛肉料理"},{"id":180,"name":"しゃぶしゃぶ（牛）","unit":"1人前","calories":350,"category":"牛肉料理"},{"id":181,"name":"ビーフシチュー","unit":"1人前","calories":420,"category":"牛肉料理"},{"id":182,"name":"牛丼の具","unit":"1人前","calories":380,"category":"牛肉料理"},{"id":183,"name":"ローストビーフ","unit":"1人前(80g)","calories":190,"category":"牛肉料理"},{"id":184,"name":"ステーキ（牛もも）","unit":"1枚(150g)","calories":273,"category":"牛肉料理"},{"id":185,"name":"ステーキ（サーロイン）","unit":"1枚(150g)","calories":690,"category":"牛肉料理"},{"id":186,"name":"キーマカレー","unit":"1人前","calories":540,"category":"ひき肉料理"},{"id":187,"name":"メンチカツ（手作り）","unit":"1個","calories":280,"category":"ひき肉料理"},{"id":188,"name":"つくね","unit":"3個","calories":180,"category":"ひき肉料理"},{"id":189,"name":"そぼろ丼","unit":"1人前","calories":520,"category":"ひき肉料理"},{"id":190,"name":"肉味噌","unit":"1人前(50g)","calories":150,"category":"ひき肉料理"},{"id":191,"name":"タコライス","unit":"1人前","calories":550,"category":"ひき肉料理"},{"id":192,"name":"ボロネーゼ","unit":"1人前","calories":600,"category":"パスタ"},{"id":193,"name":"アラビアータ","unit":"1人前","calories":450,"category":"パスタ"},{"id":194,"name":"ジェノベーゼ","unit":"1人前","calories":550,"category":"パスタ"},{"id":195,"name":"ボンゴレビアンコ","unit":"1人前","calories":430,"category":"パスタ"},{"id":196,"name":"ボンゴレロッソ","unit":"1人前","calories":420,"category":"パスタ"},{"id":197,"name":"明太子クリームパスタ","unit":"1人前","calories":620,"category":"パスタ"},{"id":198,"name":"きのこのパスタ","unit":"1人前","calories":450,"category":"パスタ"},{"id":199,"name":"和風パスタ（醤油バター）","unit":"1人前","calories":500,"category":"パスタ"},{"id":200,"name":"トマトとバジルのパスタ","unit":"1人前","calories":460,"category":"パスタ"},{"id":201,"name":"ニョッキ","unit":"1人前","calories":380,"category":"パスタ"},{"id":202,"name":"ラザニア","unit":"1人前","calories":560,"category":"パスタ"},{"id":203,"name":"そばサラダ","unit":"1人前","calories":280,"category":"麺類"},{"id":204,"name":"きつねうどん","unit":"1人前","calories":390,"category":"麺類"},{"id":205,"name":"天ぷらうどん","unit":"1人前","calories":490,"category":"麺類"},{"id":206,"name":"肉うどん","unit":"1人前","calories":450,"category":"麺類"},{"id":207,"name":"冷やしうどん","unit":"1人前","calories":290,"category":"麺類"},{"id":208,"name":"担々麺","unit":"1人前","calories":580,"category":"麺類"},{"id":209,"name":"冷やしラーメン","unit":"1人前","calories":420,"category":"麺類"},{"id":210,"name":"ちゃんぽん","unit":"1人前","calories":540,"category":"麺類"},{"id":211,"name":"皿うどん","unit":"1人前","calories":520,"category":"麺類"},{"id":212,"name":"台湾まぜそば","unit":"1人前","calories":650,"category":"麺類"},{"id":213,"name":"フォー（鶏）","unit":"1人前","calories":380,"category":"麺類"},{"id":214,"name":"パッタイ","unit":"1人前","calories":480,"category":"麺類"},{"id":215,"name":"ビーフン炒め","unit":"1人前","calories":380,"category":"麺類"},{"id":216,"name":"ブッダボウル","unit":"1人前","calories":420,"category":"サラダ"},{"id":217,"name":"ニース風サラダ","unit":"1人前","calories":280,"category":"サラダ"},{"id":218,"name":"タコサラダ","unit":"1人前","calories":200,"category":"サラダ"},{"id":219,"name":"キヌアサラダ","unit":"1人前","calories":280,"category":"サラダ"},{"id":220,"name":"蒸し鶏のサラダ","unit":"1人前","calories":180,"category":"サラダ"},{"id":221,"name":"シーフードサラダ","unit":"1人前","calories":150,"category":"サラダ"},{"id":222,"name":"ブロッコリーとエビのサラダ","unit":"1人前","calories":130,"category":"サラダ"},{"id":223,"name":"豆腐のツナサラダ","unit":"1人前","calories":120,"category":"サラダ"},{"id":224,"name":"アボカドサラダ","unit":"1人前","calories":200,"category":"サラダ"},{"id":225,"name":"れんこんサラダ","unit":"1人前","calories":100,"category":"サラダ"},{"id":226,"name":"鯵の南蛮漬け","unit":"1人前","calories":200,"category":"魚料理"},{"id":227,"name":"鮭のホイル焼き","unit":"1人前","calories":210,"category":"魚料理"},{"id":228,"name":"鮭のちゃんちゃん焼き","unit":"1人前","calories":280,"category":"魚料理"},{"id":229,"name":"サバのカレー炒め","unit":"1人前","calories":290,"category":"魚料理"},{"id":230,"name":"タラのムニエル","unit":"1人前","calories":220,"category":"魚料理"},{"id":231,"name":"ブリ大根","unit":"1人前","calories":300,"category":"魚料理"},{"id":232,"name":"イワシの梅煮","unit":"1人前","calories":210,"category":"魚料理"},{"id":233,"name":"アジの竜田揚げ","unit":"1人前","calories":280,"category":"魚料理"},{"id":234,"name":"マグロの漬け丼","unit":"1人前","calories":430,"category":"丼・ご飯"},{"id":235,"name":"鮭の漬け丼","unit":"1人前","calories":450,"category":"丼・ご飯"},{"id":236,"name":"ネギトロ丼","unit":"1人前","calories":480,"category":"丼・ご飯"},{"id":237,"name":"うな丼","unit":"1人前","calories":590,"category":"丼・ご飯"},{"id":238,"name":"中華丼","unit":"1人前","calories":580,"category":"丼・ご飯"},{"id":239,"name":"ルーロー飯","unit":"1人前","calories":620,"category":"丼・ご飯"},{"id":240,"name":"ガパオライス","unit":"1人前","calories":550,"category":"丼・ご飯"},{"id":241,"name":"ビリヤニ","unit":"1人前","calories":580,"category":"丼・ご飯"},{"id":242,"name":"石焼ビビンバ","unit":"1人前","calories":560,"category":"丼・ご飯"},{"id":243,"name":"混ぜご飯（鶏ごぼう）","unit":"1人前","calories":380,"category":"丼・ご飯"},{"id":244,"name":"たけのこご飯","unit":"1人前","calories":340,"category":"丼・ご飯"},{"id":245,"name":"栗ご飯","unit":"1人前","calories":360,"category":"丼・ご飯"},{"id":246,"name":"炊き込みご飯","unit":"1人前","calories":320,"category":"丼・ご飯"},{"id":247,"name":"赤飯","unit":"1人前","calories":320,"category":"丼・ご飯"},{"id":248,"name":"豆ご飯","unit":"1人前","calories":310,"category":"丼・ご飯"},{"id":249,"name":"コーンピラフ","unit":"1人前","calories":380,"category":"丼・ご飯"},{"id":250,"name":"ターメリックライス","unit":"1人前","calories":340,"category":"丼・ご飯"},{"id":251,"name":"ポトフ","unit":"1人前","calories":180,"category":"スープ・汁物"},{"id":252,"name":"オニオングラタンスープ","unit":"1人前","calories":220,"category":"スープ・汁物"},{"id":253,"name":"鶏のフォー風スープ","unit":"1人前","calories":200,"category":"スープ・汁物"},{"id":254,"name":"豆腐と卵のスープ","unit":"1杯","calories":90,"category":"スープ・汁物"},{"id":255,"name":"卵スープ","unit":"1杯","calories":60,"category":"スープ・汁物"},{"id":256,"name":"サンラータン","unit":"1杯","calories":100,"category":"スープ・汁物"},{"id":257,"name":"わかめスープ","unit":"1杯","calories":20,"category":"スープ・汁物"},{"id":258,"name":"トムヤムクン","unit":"1人前","calories":150,"category":"スープ・汁物"},{"id":259,"name":"ミネストローネ（具だくさん）","unit":"1人前","calories":130,"category":"スープ・汁物"},{"id":260,"name":"豆乳鍋スープ","unit":"1人前","calories":180,"category":"スープ・汁物"},{"id":261,"name":"参鶏湯（サムゲタン）","unit":"1人前","calories":320,"category":"スープ・汁物"},{"id":262,"name":"テールスープ","unit":"1人前","calories":280,"category":"スープ・汁物"},{"id":263,"name":"グリーンカレー","unit":"1人前","calories":480,"category":"カレー"},{"id":264,"name":"バターチキンカレー","unit":"1人前","calories":520,"category":"カレー"},{"id":265,"name":"スープカレー","unit":"1人前","calories":400,"category":"カレー"},{"id":266,"name":"タイカレー（レッド）","unit":"1人前","calories":450,"category":"カレー"},{"id":267,"name":"和風カレーうどん","unit":"1人前","calories":480,"category":"カレー"},{"id":268,"name":"カレーパン","unit":"1個","calories":280,"category":"パン"},{"id":269,"name":"メロンパン","unit":"1個(100g)","calories":366,"category":"パン"},{"id":270,"name":"コッペパンサンド","unit":"1個","calories":320,"category":"パン"},{"id":271,"name":"フォカッチャ","unit":"1枚(80g)","calories":210,"category":"パン"},{"id":272,"name":"チャバタサンド","unit":"1個","calories":350,"category":"パン"},{"id":273,"name":"クロックムッシュ","unit":"1枚","calories":380,"category":"パン"},{"id":274,"name":"アボカドトースト","unit":"1枚","calories":250,"category":"パン"},{"id":275,"name":"ピザトースト","unit":"1枚","calories":320,"category":"パン"},{"id":276,"name":"シナモントースト","unit":"1枚","calories":200,"category":"パン"},{"id":277,"name":"チーズトースト","unit":"1枚","calories":220,"category":"パン"},{"id":278,"name":"たまごサンド","unit":"1個","calories":300,"category":"朝食"},{"id":279,"name":"スムージーボウル","unit":"1人前","calories":280,"category":"朝食"},{"id":280,"name":"パンケーキ（プロテイン）","unit":"2枚","calories":280,"category":"朝食"},{"id":281,"name":"ヨーグルトパフェ","unit":"1人前","calories":200,"category":"朝食"},{"id":282,"name":"オートミール粥","unit":"1人前","calories":170,"category":"朝食"},{"id":283,"name":"フルーツヨーグルト","unit":"1人前","calories":150,"category":"朝食"},{"id":284,"name":"アボカドエッグトースト","unit":"1枚","calories":320,"category":"朝食"},{"id":285,"name":"シリアルボウル（フルーツ入り）","unit":"1人前","calories":320,"category":"朝食"},{"id":286,"name":"チアプディング","unit":"1人前","calories":200,"category":"朝食"},{"id":287,"name":"豆腐グラタン","unit":"1人前","calories":220,"category":"豆腐料理"},{"id":288,"name":"麻婆豆腐（豆腐多め）","unit":"1人前","calories":230,"category":"豆腐料理"},{"id":289,"name":"豆腐チャンプルー","unit":"1人前","calories":250,"category":"豆腐料理"},{"id":290,"name":"豆腐ハンバーグ","unit":"1個","calories":180,"category":"豆腐料理"},{"id":291,"name":"豆腐ステーキ（和風）","unit":"1人前","calories":140,"category":"豆腐料理"},{"id":292,"name":"豆腐と野菜の炒め物","unit":"1人前","calories":160,"category":"豆腐料理"},{"id":293,"name":"水菜と豆腐のサラダ","unit":"1人前","calories":80,"category":"豆腐料理"},{"id":294,"name":"エビと豆腐のチリソース","unit":"1人前","calories":220,"category":"豆腐料理"},{"id":295,"name":"ゴーヤチャンプルー","unit":"1人前","calories":230,"category":"炒め物"},{"id":296,"name":"もやしと豚肉の炒め物","unit":"1人前","calories":250,"category":"炒め物"},{"id":297,"name":"ニラ玉","unit":"1人前","calories":200,"category":"炒め物"},{"id":298,"name":"チャプチェ","unit":"1人前","calories":280,"category":"炒め物"},{"id":299,"name":"パプリカと鶏肉の炒め物","unit":"1人前","calories":230,"category":"炒め物"},{"id":300,"name":"小松菜と油揚げの炒め煮","unit":"1人前","calories":100,"category":"和え物・煮物"},{"id":301,"name":"大根の煮物","unit":"1人前","calories":80,"category":"和え物・煮物"},{"id":302,"name":"いも煮","unit":"1人前","calories":200,"category":"和え物・煮物"},{"id":303,"name":"なすの煮浸し","unit":"1人前","calories":70,"category":"和え物・煮物"},{"id":304,"name":"かぼちゃのそぼろ煮","unit":"1人前","calories":160,"category":"和え物・煮物"},{"id":305,"name":"ひじきと大豆の煮物","unit":"1人前","calories":90,"category":"和え物・煮物"},{"id":306,"name":"きんぴらごぼう","unit":"1人前","calories":100,"category":"和え物・煮物"},{"id":307,"name":"ブロッコリーの胡麻和え","unit":"1人前","calories":60,"category":"和え物・煮物"},{"id":308,"name":"ほうれん草の白和え","unit":"1人前","calories":80,"category":"和え物・煮物"},{"id":309,"name":"豆腐の白和え","unit":"1人前","calories":90,"category":"和え物・煮物"},{"id":310,"name":"酢の物（わかめきゅうり）","unit":"1人前","calories":25,"category":"和え物・煮物"},{"id":311,"name":"とり天","unit":"1人前","calories":280,"category":"揚げ物"},{"id":312,"name":"かき揚げ丼","unit":"1人前","calories":650,"category":"丼・ご飯"},{"id":313,"name":"天ぷら盛り合わせ","unit":"1人前","calories":380,"category":"天ぷら"},{"id":314,"name":"野菜コロッケ","unit":"1個","calories":160,"category":"揚げ物"},{"id":315,"name":"かにクリームコロッケ","unit":"1個","calories":200,"category":"揚げ物"},{"id":316,"name":"アジの南蛮漬け","unit":"1人前","calories":210,"category":"魚料理"},{"id":317,"name":"牡蠣フライ","unit":"3個","calories":270,"category":"揚げ物"},{"id":318,"name":"イカリング","unit":"5個","calories":220,"category":"揚げ物"},{"id":319,"name":"フライドチキン","unit":"1本","calories":230,"category":"鶏肉料理"},{"id":320,"name":"フライドポテト","unit":"1人前","calories":290,"category":"揚げ物"},{"id":321,"name":"たこ焼き","unit":"6個","calories":270,"category":"粉物"},{"id":322,"name":"お好み焼き（豚）","unit":"1枚","calories":450,"category":"粉物"},{"id":323,"name":"もんじゃ焼き","unit":"1人前","calories":280,"category":"粉物"},{"id":324,"name":"チヂミ","unit":"1枚","calories":320,"category":"粉物"},{"id":325,"name":"クレープ（ハム・チーズ）","unit":"1枚","calories":280,"category":"粉物"},{"id":326,"name":"ピザ（クアトロフォルマッジ）","unit":"1/4枚","calories":360,"category":"洋食"},{"id":327,"name":"キッシュ","unit":"1切れ","calories":280,"category":"洋食"},{"id":328,"name":"ミートローフ","unit":"1人前","calories":320,"category":"洋食"},{"id":329,"name":"チキンのマスタード焼き","unit":"1人前","calories":280,"category":"洋食"},{"id":330,"name":"ポークジンジャー","unit":"1人前","calories":350,"category":"洋食"},{"id":331,"name":"シェパーズパイ","unit":"1人前","calories":380,"category":"洋食"},{"id":332,"name":"ニョッキのゴルゴンゾーラ","unit":"1人前","calories":450,"category":"洋食"},{"id":333,"name":"ラタトゥイユ","unit":"1人前","calories":120,"category":"洋食"},{"id":334,"name":"アクアパッツァ","unit":"1人前","calories":220,"category":"洋食"},{"id":335,"name":"ムサカ","unit":"1人前","calories":380,"category":"洋食"},{"id":336,"name":"チキンのパプリカ煮","unit":"1人前","calories":290,"category":"洋食"},{"id":337,"name":"鍋（もつ鍋）","unit":"1人前","calories":300,"category":"鍋"},{"id":338,"name":"鍋（石狩鍋）","unit":"1人前","calories":310,"category":"鍋"},{"id":339,"name":"鍋（カレー鍋）","unit":"1人前","calories":350,"category":"鍋"},{"id":340,"name":"鍋（トマト鍋）","unit":"1人前","calories":280,"category":"鍋"},{"id":341,"name":"鍋（すき焼き風）","unit":"1人前","calories":480,"category":"鍋"},{"id":342,"name":"鍋（寄せ鍋）","unit":"1人前","calories":280,"category":"鍋"},{"id":343,"name":"しゃぶしゃぶ（豚）","unit":"1人前","calories":300,"category":"鍋"},{"id":344,"name":"韓国風スンドゥブ","unit":"1人前","calories":200,"category":"鍋"},{"id":345,"name":"プルコギ","unit":"1人前","calories":320,"category":"韓国料理"},{"id":346,"name":"チャプチェ（牛肉）","unit":"1人前","calories":300,"category":"韓国料理"},{"id":347,"name":"サムギョプサル","unit":"1人前","calories":480,"category":"韓国料理"},{"id":348,"name":"冷麺","unit":"1人前","calories":380,"category":"韓国料理"},{"id":349,"name":"ビビンバ（冷）","unit":"1人前","calories":480,"category":"韓国料理"},{"id":350,"name":"トッポッキ","unit":"1人前","calories":320,"category":"韓国料理"},{"id":351,"name":"パッドシーイウ","unit":"1人前","calories":450,"category":"タイ料理"},{"id":352,"name":"グリーンカレースープ","unit":"1人前","calories":350,"category":"タイ料理"},{"id":353,"name":"ソムタム","unit":"1人前","calories":120,"category":"タイ料理"},{"id":354,"name":"春雨サラダ","unit":"1人前","calories":130,"category":"中華"},{"id":355,"name":"バンバンジー冷やし麺","unit":"1人前","calories":420,"category":"中華"},{"id":356,"name":"回鍋肉定食風","unit":"1人前","calories":580,"category":"中華"},{"id":357,"name":"八宝菜","unit":"1人前","calories":220,"category":"中華"},{"id":358,"name":"天津飯","unit":"1人前","calories":550,"category":"中華"},{"id":359,"name":"中華粥","unit":"1人前","calories":180,"category":"中華"},{"id":360,"name":"焼き小籠包","unit":"4個","calories":240,"category":"中華"},{"id":361,"name":"えびワンタンスープ","unit":"1人前","calories":200,"category":"中華"},{"id":362,"name":"チャーシュー","unit":"1人前(80g)","calories":240,"category":"中華"},{"id":363,"name":"叉焼丼","unit":"1人前","calories":500,"category":"中華"},{"id":364,"name":"ひき肉のそぼろ炒め（韓国風）","unit":"1人前","calories":250,"category":"韓国料理"},{"id":365,"name":"プロテインパンケーキ","unit":"2枚","calories":280,"category":"ヘルシー"},{"id":366,"name":"大豆ミートのそぼろ","unit":"1人前","calories":180,"category":"ヘルシー"},{"id":367,"name":"大豆ミートハンバーグ","unit":"1個","calories":200,"category":"ヘルシー"},{"id":368,"name":"鶏むね肉のタコス","unit":"2枚","calories":320,"category":"ヘルシー"},{"id":369,"name":"豆腐チャンプルー（低カロリー）","unit":"1人前","calories":200,"category":"ヘルシー"},{"id":370,"name":"野菜たっぷりスープ","unit":"1人前","calories":80,"category":"ヘルシー"},{"id":371,"name":"蒸し野菜盛り合わせ","unit":"1人前","calories":100,"category":"ヘルシー"},{"id":372,"name":"鶏ハムとアボカドサラダ","unit":"1人前","calories":250,"category":"ヘルシー"},{"id":373,"name":"しらたきチャーハン","unit":"1人前","calories":200,"category":"ヘルシー"},{"id":374,"name":"豆腐ライス（カリフラワー）","unit":"1人前","calories":120,"category":"ヘルシー"},{"id":375,"name":"ブロッコリーのチーズ焼き","unit":"1人前","calories":120,"category":"ヘルシー"},{"id":376,"name":"高野豆腐の煮物","unit":"1人前","calories":100,"category":"ヘルシー"},{"id":377,"name":"きのこの和風マリネ","unit":"1人前","calories":50,"category":"ヘルシー"},{"id":378,"name":"鶏むね肉のバジル炒め","unit":"1人前","calories":200,"category":"ヘルシー"},{"id":379,"name":"刺身サラダ","unit":"1人前","calories":180,"category":"ヘルシー"},{"id":380,"name":"ツナと野菜の蒸し物","unit":"1人前","calories":130,"category":"ヘルシー"},{"id":381,"name":"おでん（盛り合わせ）","unit":"1人前","calories":250,"category":"和食"},{"id":382,"name":"茶碗蒸し（具だくさん）","unit":"1人前","calories":110,"category":"和食"},{"id":383,"name":"だし巻き卵","unit":"1人前(卵2個)","calories":150,"category":"和食"},{"id":384,"name":"冷奴（薬味たっぷり）","unit":"1人前","calories":75,"category":"和食"},{"id":385,"name":"湯豆腐","unit":"1人前","calories":90,"category":"和食"},{"id":386,"name":"あんかけ豆腐","unit":"1人前","calories":120,"category":"和食"},{"id":387,"name":"だし茶漬け","unit":"1人前","calories":200,"category":"和食"},{"id":388,"name":"鶏飯（けいはん）","unit":"1人前","calories":320,"category":"和食"},{"id":389,"name":"鱈ちり","unit":"1人前","calories":160,"category":"和食"},{"id":390,"name":"鮭の石狩汁","unit":"1人前","calories":180,"category":"和食"},{"id":391,"name":"えのきの和え物","unit":"1人前","calories":30,"category":"和食"},{"id":392,"name":"なめたけ（手作り）","unit":"大さじ2","calories":40,"category":"和食"},{"id":393,"name":"焼きなす","unit":"1人前","calories":40,"category":"和食"},{"id":394,"name":"蒸しとうもろこし","unit":"1本","calories":90,"category":"和食"},{"id":395,"name":"長芋の短冊","unit":"1人前","calories":65,"category":"和食"},{"id":396,"name":"ポテトグラタン","unit":"1人前","calories":350,"category":"洋食"},{"id":397,"name":"チキンのバジルソース焼き","unit":"1人前","calories":270,"category":"洋食"},{"id":398,"name":"サーモンのホイル焼き（レモン）","unit":"1人前","calories":210,"category":"洋食"},{"id":399,"name":"ツナのトマト煮込み","unit":"1人前","calories":180,"category":"洋食"},{"id":400,"name":"チキンピカタ","unit":"1人前","calories":280,"category":"洋食"},{"id":401,"name":"エビのアヒージョ","unit":"1人前","calories":280,"category":"洋食"},{"id":402,"name":"マッシュルームのアヒージョ","unit":"1人前","calories":200,"category":"洋食"},{"id":403,"name":"チキンのコンフィ","unit":"1人前","calories":420,"category":"洋食"},{"id":404,"name":"豚肉のりんご煮","unit":"1人前","calories":340,"category":"洋食"},{"id":405,"name":"白身魚のフリット","unit":"1人前","calories":280,"category":"洋食"},{"id":406,"name":"ペンネのアラビアータ","unit":"1人前","calories":450,"category":"パスタ"},{"id":407,"name":"ベジタリアンカレー","unit":"1人前","calories":380,"category":"カレー"},{"id":408,"name":"豆カレー（ダール）","unit":"1人前","calories":320,"category":"カレー"},{"id":409,"name":"チキンティッカマサラ","unit":"1人前","calories":380,"category":"カレー"},{"id":410,"name":"麻辣火鍋","unit":"1人前","calories":380,"category":"鍋"},{"id":411,"name":"コーンバター醤油ラーメン","unit":"1人前","calories":580,"category":"麺類"},{"id":412,"name":"ワンタン麺","unit":"1人前","calories":430,"category":"麺類"},{"id":413,"name":"刀削麺（トマト卵）","unit":"1人前","calories":460,"category":"麺類"},{"id":414,"name":"ジャージャー麺","unit":"1人前","calories":580,"category":"麺類"},{"id":415,"name":"ゆで卵（味付き）","unit":"1個","calories":100,"category":"卵料理"},{"id":416,"name":"厚焼き玉子","unit":"1人前","calories":180,"category":"卵料理"},{"id":417,"name":"卵とじうどん","unit":"1人前","calories":380,"category":"麺類"},{"id":418,"name":"かき玉汁","unit":"1杯","calories":50,"category":"スープ・汁物"},{"id":419,"name":"プロテインオートミール","unit":"1人前","calories":280,"category":"ヘルシー"},{"id":420,"name":"ブロッコリーとツナのサラダ","unit":"1人前","calories":120,"category":"ヘルシー"},{"id":421,"name":"サラダチキンと温野菜","unit":"1人前","calories":200,"category":"ヘルシー"},{"id":422,"name":"豆腐そぼろ丼","unit":"1人前","calories":380,"category":"ヘルシー"},{"id":423,"name":"鶏胸肉のトマト煮込み","unit":"1人前","calories":220,"category":"ヘルシー"},{"id":424,"name":"えびとブロッコリーの炒め物","unit":"1人前","calories":150,"category":"ヘルシー"},{"id":425,"name":"きのこのアヒージョ（低カロリー）","unit":"1人前","calories":130,"category":"ヘルシー"},{"id":426,"name":"白菜と豚肉のミルフィーユ鍋","unit":"1人前","calories":280,"category":"鍋"},{"id":427,"name":"もやしとにらのナムル","unit":"1人前","calories":40,"category":"和え物・煮物"},{"id":428,"name":"にんじんしりしり","unit":"1人前","calories":80,"category":"和え物・煮物"},{"id":429,"name":"ゴーヤの塩もみ","unit":"1人前","calories":20,"category":"和え物・煮物"},{"id":430,"name":"豆腐とわかめの酢の物","unit":"1人前","calories":50,"category":"和え物・煮物"},{"id":431,"name":"切干大根の煮物","unit":"1人前","calories":70,"category":"和え物・煮物"},{"id":432,"name":"牛肉と野菜の韓国風炒め","unit":"1人前","calories":350,"category":"韓国料理"},{"id":433,"name":"カムジャタン","unit":"1人前","calories":380,"category":"韓国料理"},{"id":434,"name":"コムタン","unit":"1人前","calories":200,"category":"韓国料理"},{"id":435,"name":"海鮮チヂミ","unit":"1枚","calories":350,"category":"韓国料理"},{"id":436,"name":"ジャパチェ（中華風春雨炒め）","unit":"1人前","calories":280,"category":"中華"},{"id":437,"name":"棒ラーメン（塩）","unit":"1人前","calories":420,"category":"麺類"},{"id":438,"name":"ソーキそば","unit":"1人前","calories":480,"category":"麺類"},{"id":439,"name":"沖縄そば","unit":"1人前","calories":440,"category":"麺類"},{"id":440,"name":"皿そば","unit":"1人前","calories":430,"category":"麺類"},{"id":441,"name":"山かけ丼","unit":"1人前","calories":350,"category":"丼・ご飯"},{"id":442,"name":"卵黄醤油ご飯","unit":"1人前","calories":300,"category":"丼・ご飯"},{"id":443,"name":"塩昆布バターご飯","unit":"1人前","calories":320,"category":"丼・ご飯"},{"id":444,"name":"混ぜご飯（ツナとコーン）","unit":"1人前","calories":360,"category":"丼・ご飯"},{"id":445,"name":"雑炊（鶏）","unit":"1人前","calories":220,"category":"丼・ご飯"},{"id":446,"name":"雑炊（卵）","unit":"1人前","calories":200,"category":"丼・ご飯"},{"id":447,"name":"おかゆ（白）","unit":"1人前","calories":130,"category":"丼・ご飯"},{"id":448,"name":"おかゆ（梅）","unit":"1人前","calories":135,"category":"丼・ご飯"},{"id":449,"name":"鮭おにぎらず","unit":"1個","calories":320,"category":"丼・ご飯"},{"id":450,"name":"明太子おにぎらず","unit":"1個","calories":340,"category":"丼・ご飯"}];
+// ============================================================
+// ICON LIBRARY  (Lucide-style SVG paths)
+// ============================================================
+const ICONS = {
+  dashboard:   `<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>`,
+  scale:       `<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>`,
+  utensils:    `<path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3v5"/>`,
+  dumbbell:    `<path d="M14.4 14.4 9.6 9.6"/><path d="M18.657 21.485a2 2 0 1 1-2.829-2.828l-1.767 1.768a2 2 0 1 1-2.829-2.829l6.364-6.364a2 2 0 1 1 2.829 2.829l-1.768 1.767a2 2 0 1 1 2.828 2.829z"/><path d="m21.5 21.5-1.4-1.4"/><path d="M3.9 3.9 2.5 2.5"/><path d="M6.404 12.768a2 2 0 1 1-2.829-2.829l1.768-1.767a2 2 0 1 1-2.828-2.829l2.828-2.828a2 2 0 1 1 2.829 2.828l1.767-1.768a2 2 0 1 1 2.829 2.829z"/>`,
+  trendingUp:  `<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>`,
+  sparkles:    `<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>`,
+  settings:    `<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>`,
+  flame:       `<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>`,
+  zap:         `<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>`,
+  plus:        `<path d="M5 12h14"/><path d="M12 5v14"/>`,
+  x:           `<path d="M18 6 6 18"/><path d="m6 6 12 12"/>`,
+  pencil:      `<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>`,
+  trash:       `<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>`,
+  send:        `<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>`,
+  sunrise:     `<path d="M12 2v8"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/>`,
+  sun:         `<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>`,
+  moon:        `<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>`,
+  bot:         `<path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>`,
+  clipboard:   `<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>`,
+  chevronRight:`<path d="m9 18 6-6-6-6"/>`,
+  barChart:    `<line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>`,
+  check:       `<path d="M20 6 9 17l-5-5"/>`,
+  key:         `<circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/>`,
+  user:        `<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`,
+  download:    `<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>`,
+  upload:      `<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>`,
+  warning:     `<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>`,
+  target:      `<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>`,
+  activity:    `<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>`,
+  arrowRight:  `<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>`,
+  heart:       `<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>`,
+  repeat:      `<path d="m17 2 4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="m7 22-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>`,
+  search:      `<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>`,
+};
+
+// icon(name, size?, extraClasses?) → SVG string
+function icon(n, s = 20, c = '') {
+  const paths = ICONS[n] || '';
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"${c ? ` class="${c}"` : ''} style="flex-shrink:0;display:block">${paths}</svg>`;
+}
+
+// ============================================================
+// DATA LAYER
+// ============================================================
+const DB = {
+  get(key) {
+    try { return JSON.parse(localStorage.getItem('ft_' + key)); } catch { return null; }
+  },
+  set(key, val) {
+    localStorage.setItem('ft_' + key, JSON.stringify(val));
+  },
+  getBodyRecords() { return this.get('body') || []; },
+  getMeals(date) { return (this.get('meals') || {})[date] || { breakfast: [], lunch: [], dinner: [] }; },
+  getAllMeals() { return this.get('meals') || {}; },
+  getWorkouts(date) { return (this.get('workouts') || {})[date] || []; },
+  getAllWorkouts() { return this.get('workouts') || {}; },
+  getSettings() { return this.get('settings') || { apiKey: '', targetWeight: '', targetCalories: 2000, name: '' }; },
+  saveBodyRecord(record) {
+    const records = this.getBodyRecords();
+    const idx = records.findIndex(r => r.date === record.date);
+    if (idx >= 0) records[idx] = record; else records.push(record);
+    records.sort((a, b) => b.date.localeCompare(a.date));
+    this.set('body', records);
+  },
+  saveMeal(date, type, items) {
+    const all = this.getAllMeals();
+    if (!all[date]) all[date] = { breakfast: [], lunch: [], dinner: [] };
+    all[date][type] = items;
+    this.set('meals', all);
+  },
+  saveWorkout(date, exercises) {
+    const all = this.getAllWorkouts();
+    all[date] = exercises;
+    this.set('workouts', all);
+  },
+  saveSettings(s) { this.set('settings', s); }
+};
+
+// ============================================================
+// HELPERS
+// ============================================================
+function today() { return new Date().toISOString().split('T')[0]; }
+function fmtDate(d) {
+  if (!d) return '';
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric', weekday: 'short' });
+}
+function greeting() {
+  const h = new Date().getHours();
+  if (h < 5) return 'こんばんは';
+  if (h < 12) return 'おはようございます';
+  if (h < 17) return 'こんにちは';
+  return 'こんばんは';
+}
+function totalCals(mealObj) {
+  if (!mealObj) return 0;
+  return ['breakfast','lunch','dinner'].reduce((s, t) =>
+    s + (mealObj[t] || []).reduce((a, i) => a + (Number(i.calories) || 0), 0), 0);
+}
+function showToast(msg, ok = true) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  document.getElementById('toast-icon').textContent = ok ? '✓' : '⚠';
+  t.classList.remove('hidden');
+  setTimeout(() => t.classList.add('hidden'), 2500);
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+let currentPage = 'dashboard';
+let activeChart = null;
+
+function navigate(page) {
+  currentPage = page;
+  // Destroy existing chart
+  if (activeChart) { try { activeChart.destroy(); } catch {} activeChart = null; }
+
+  // Sidebar highlight
+  document.querySelectorAll('.sidebar-link').forEach(el => {
+    el.classList.toggle('active', el.dataset.page === page);
+  });
+  document.querySelectorAll('.mob-item').forEach(el => {
+    el.classList.toggle('mob-active', el.dataset.mob === page);
+  });
+
+  const renderers = { dashboard: renderDashboard, body: renderBody, meals: renderMeals,
+                      workout: renderWorkout, progress: renderProgress, ai: renderAI, settings: renderSettings };
+  const fn = renderers[page];
+  if (fn) fn();
+}
+
+// ============================================================
+// CALORIE BURN CALCULATION
+// ============================================================
+const EXERCISE_MET = {
+  // 有酸素
+  'ランニング': 9.0, 'ウォーキング': 3.5, 'バイク（エアロバイク）': 7.0,
+  'ローイングマシン': 7.5, 'エリプティカル': 6.0, 'ステッパー': 5.5,
+  '水泳': 8.0, '縄跳び': 11.0, 'ジャンピングジャック': 8.0,
+  'バーピー': 10.0, 'ハイニー': 8.0, 'シャドーボクシング': 7.0,
+  // 多関節・高強度
+  'デッドリフト': 6.0, 'スモウデッドリフト': 5.8, 'ルーマニアンデッドリフト': 5.5,
+  'スクワット': 5.5, 'フロントスクワット': 5.5, 'ハックスクワット': 5.0,
+  'ゴブレットスクワット': 5.0, 'スモウスクワット': 5.0, 'ブルガリアンスクワット': 5.2,
+  'レッグプレス': 5.0, 'ランジ': 5.0, 'ウォーキングランジ': 5.5,
+  'ベンチプレス': 5.0, 'インクラインベンチプレス': 4.8, 'デクラインベンチプレス': 4.8,
+  'ショルダープレス': 4.5, 'ダンベルショルダープレス': 4.5, 'バーベルショルダープレス': 4.5,
+  'アーノルドプレス': 4.3, 'ベントオーバーロウ': 5.0, 'Tバーロウ': 5.0,
+  'シーテッドロウ': 4.5, 'ワンハンドロウ': 4.5,
+  '懸垂': 5.0, 'チンアップ': 5.0, 'ラットプルダウン': 4.5,
+  'ディップス': 4.5, 'プッシュアップ': 4.0, 'ヒップスラスト': 4.5,
+  'ステップアップ': 4.8,
+  // 単関節・中強度
+  'サイドレイズ': 3.5, 'フロントレイズ': 3.5, 'リアデルトフライ': 3.5,
+  'アップライトロウ': 4.0, 'ショルダーシュラッグ': 3.5, 'ケーブルサイドレイズ': 3.5,
+  'アームカール': 3.5, 'ハンマーカール': 3.5, 'バーベルカール': 3.8,
+  'インクラインカール': 3.5, 'コンセントレーションカール': 3.3, 'プリーチャーカール': 3.5,
+  'リバースカール': 3.5, 'ケーブルカール': 3.5,
+  'トライセプスプレス': 3.5, 'スカルクラッシャー': 3.5,
+  'トライセプスキックバック': 3.3, 'トライセプスエクステンション': 3.5,
+  'ケーブルプッシュダウン': 3.5,
+  'レッグエクステンション': 4.0, 'レッグカール（ライイング）': 4.0,
+  'レッグカール（シーテッド）': 4.0, 'カーフレイズ': 3.0,
+  'ペックデック': 3.5, 'チェストフライ（マシン）': 3.5, 'ケーブルクロスオーバー': 3.8,
+  'ダンベルフライ': 3.5, 'プルオーバー': 3.8, 'フェイスプル': 3.5,
+  // 体幹
+  'プランク': 3.0, 'サイドプランク': 3.0, 'クランチ': 3.0, 'シットアップ': 3.5,
+  'レッグレイズ': 3.5, 'ニートゥーチェスト': 3.5, 'ロシアンツイスト': 3.5,
+  'バイシクルクランチ': 4.0, 'マウンテンクライマー': 7.0, 'アブローラー': 5.0,
+  'ドラゴンフラッグ': 5.5, 'ケーブルクランチ': 3.5, 'ハンギングレッグレイズ': 4.5,
+};
+
+// 1セットあたり: 実働45秒 + インターバル90秒 ≒ 2.25分
+const MINS_PER_SET = 2.25;
+
+function calcBurnedCalories(date) {
+  const workouts = DB.getWorkouts(date);
+  if (!workouts.length) return 0;
+  const records = DB.getBodyRecords();
+  const bw = records.length && records[0].weight ? records[0].weight : 65;
+  let total = 0;
+  workouts.forEach(ex => {
+    const met = EXERCISE_MET[ex.name] || 4.0;
+    const sets = Math.max(ex.sets.filter(s => s.reps > 0).length, ex.sets.length, 1);
+    total += met * bw * (sets * MINS_PER_SET / 60);
+  });
+  return Math.round(total);
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard() {
+  const td = today();
+  const records = DB.getBodyRecords();
+  const latestWeight = records.length ? records[0].weight : null;
+  const prevWeight = records.length > 1 ? records[1].weight : null;
+  const weightDiff = latestWeight && prevWeight ? (latestWeight - prevWeight).toFixed(1) : null;
+  const mealToday = DB.getMeals(td);
+  const todayCals = totalCals(mealToday);
+  const settings = DB.getSettings();
+  const targetCals = settings.targetCalories || 2000;
+  const calPct = Math.min(100, Math.round((todayCals / targetCals) * 100));
+  const workoutsToday = DB.getWorkouts(td);
+  const burnedCals = calcBurnedCalories(td);
+  const netCals = todayCals - burnedCals;
+  const totalSets = workoutsToday.reduce((s, w) => s + w.sets.length, 0);
+  const name = settings.name ? `、${settings.name}さん` : '';
+  const lastRecord = records.length ? fmtDate(records[0].date) : '未記録';
+
+  // Last 14 days weight data
+  const weightData = getWeightChartData(14);
+
+  document.getElementById('page-content').innerHTML = `
+    <div class="page">
+      <!-- Header Banner (full bleed on mobile) -->
+      <div class="page-banner" style="background:linear-gradient(135deg,#7c3aed,#ec4899,#f97316)">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-2xl font-black">${greeting()}${escHtml(name)}</div>
+            <p class="text-sm text-white/70 mt-1">${new Date().toLocaleDateString('ja-JP', {year:'numeric',month:'long',day:'numeric',weekday:'long'})}</p>
+          </div>
+          <button onclick="navigate('body')" class="bg-white/20 text-white text-sm px-4 py-3 rounded-2xl font-bold border border-white/30 flex-shrink-0 active:scale-95 transition-transform flex items-center gap-2">
+            ${icon('plus',16,'text-white')} 記録
+          </button>
+        </div>
+      </div>
+
+      <!-- Inner content with padding -->
+      <div class="page-inner">
+
+      <!-- Stat Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="stat-card-pop sc-purple" onclick="navigate('body')" style="cursor:pointer">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold text-white/60 uppercase tracking-widest">体重</span>
+            <span class="text-white/60">${icon('scale', 18)}</span>
+          </div>
+          <div class="text-3xl font-black text-white leading-none">${latestWeight ? latestWeight : '—'}<span class="text-sm font-medium text-white/60 ml-1">${latestWeight ? 'kg' : ''}</span></div>
+          <div class="text-xs mt-2 text-white/70 font-medium">${weightDiff ? `${Number(weightDiff) < 0 ? '↓' : '↑'} ${Math.abs(weightDiff)}kg (前回比)` : `最終: ${lastRecord}`}</div>
+        </div>
+
+        <div class="stat-card-pop sc-orange" onclick="navigate('meals')" style="cursor:pointer">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold text-white/60 uppercase tracking-widest">摂取</span>
+            <span class="text-white/60">${icon('utensils', 18)}</span>
+          </div>
+          <div class="text-3xl font-black text-white leading-none">${todayCals}<span class="text-sm font-medium text-white/60 ml-1">kcal</span></div>
+          <div class="mt-3">
+            <div class="bg-white/20 rounded-full h-1.5">
+              <div class="progress-bar h-1.5 rounded-full bg-white/80" style="width:${calPct}%"></div>
+            </div>
+            <div class="text-xs text-white/60 mt-1">${calPct}% of ${targetCals}</div>
+          </div>
+        </div>
+
+        <div class="stat-card-pop sc-red" onclick="navigate('workout')" style="cursor:pointer">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold text-white/60 uppercase tracking-widest">消費</span>
+            <span class="text-white/60">${icon('flame', 18)}</span>
+          </div>
+          <div class="text-3xl font-black text-white leading-none">${burnedCals}<span class="text-sm font-medium text-white/60 ml-1">kcal</span></div>
+          <div class="text-xs mt-2 text-white/70 font-medium">
+            ${burnedCals > 0 ? `${workoutsToday.length}種目 · ${totalSets}セット` : '筋トレで計算'}
+          </div>
+        </div>
+
+        <div class="stat-card-pop sc-green" onclick="navigate('workout')" style="cursor:pointer">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold text-white/60 uppercase tracking-widest">筋トレ</span>
+            <span class="text-white/60">${icon('dumbbell', 18)}</span>
+          </div>
+          <div class="text-3xl font-black text-white leading-none">${workoutsToday.length}<span class="text-sm font-medium text-white/60 ml-1">種目</span></div>
+          <div class="text-xs mt-2 text-white/70 font-medium">
+            ${workoutsToday.length > 0 ? workoutsToday.slice(0,2).map(w=>escHtml(w.name)).join('・') + (workoutsToday.length > 2 ? '…' : '') : '未記録'}
+          </div>
+        </div>
+
+        <div class="stat-card-pop ${netCals > 200 ? 'sc-surplus' : netCals < -200 ? 'sc-deficit' : 'sc-blue'}" onclick="navigate('meals')" style="cursor:pointer">
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-bold text-white/60 uppercase tracking-widest">収支</span>
+            <span class="text-white/60">${icon('zap', 18)}</span>
+          </div>
+          <div class="text-3xl font-black text-white leading-none">
+            ${netCals > 0 ? '+' : ''}${netCals}<span class="text-sm font-medium text-white/60 ml-1">kcal</span>
+          </div>
+          <div class="text-xs mt-2 text-white/70 font-medium">
+            ${todayCals === 0 && burnedCals === 0 ? '記録すると表示' :
+              netCals > 200  ? '摂取超過' :
+              netCals < -200 ? 'いい調子' : 'ほぼ均衡'}
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Grid -->
+      <div class="grid md:grid-cols-5 gap-4">
+        <!-- Weight Chart -->
+        <div class="card p-5 md:col-span-3">
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="font-bold text-gray-700 flex items-center gap-2">${icon('trendingUp',16,'text-purple-500')} 体重推移（直近14日）</h3>
+            <button onclick="navigate('progress')" class="text-xs text-purple-500 font-semibold flex items-center gap-1">詳細 ${icon('chevronRight',14)}</button>
+          </div>
+          ${weightData.labels.length >= 2
+            ? `<canvas id="dash-chart" height="140"></canvas>`
+            : `<div class="flex flex-col items-center justify-center h-32 text-gray-400">
+                <span class="text-3xl mb-2">📉</span>
+                <p class="text-sm">体重を2日以上記録するとグラフが表示されます</p>
+                <button onclick="navigate('body')" class="mt-3 text-indigo-500 text-sm hover:underline">今日の体重を記録する</button>
+               </div>`
+          }
+        </div>
+
+        <!-- Today Summary -->
+        <div class="card p-5 md:col-span-2 space-y-3">
+          <h3 class="font-bold text-gray-700 flex items-center gap-2">${icon('utensils',16,'text-orange-500')} 今日の食事</h3>
+          ${['breakfast','lunch','dinner'].map(type => {
+            const mealIcons = { breakfast: icon('sunrise',14,'text-orange-400'), lunch: icon('sun',14,'text-yellow-400'), dinner: icon('moon',14,'text-indigo-400') };
+            const mealNames = { breakfast: '朝食', lunch: '昼食', dinner: '夕食' };
+            const items = mealToday[type] || [];
+            const cal = items.reduce((s,i) => s+(Number(i.calories)||0), 0);
+            return `<div class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+              <div>
+                <div class="text-sm font-medium text-gray-700 flex items-center gap-1.5">${mealIcons[type]}${mealNames[type]}</div>
+                <div class="text-xs text-gray-400">${items.length > 0 ? items.slice(0,2).map(i=>escHtml(i.name)).join('、') + (items.length>2?'...':'') : '未記録'}</div>
+              </div>
+              <div class="text-sm font-semibold text-gray-600">${cal > 0 ? cal + 'kcal' : '-'}</div>
+            </div>`;
+          }).join('')}
+          <button onclick="navigate('meals')" class="w-full text-center text-xs text-purple-500 pt-2 font-semibold flex items-center justify-center gap-1">食事を記録する ${icon('arrowRight',13)}</button>
+        </div>
+      </div>
+
+      <!-- Today's Workout Summary -->
+      ${workoutsToday.length > 0 ? `
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-bold text-gray-700 flex items-center gap-2">${icon('dumbbell',16,'text-emerald-500')} 今日のトレーニング</h3>
+          <button onclick="navigate('workout')" class="text-xs text-purple-500 font-semibold flex items-center gap-1">編集 ${icon('chevronRight',13)}</button>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+          ${workoutsToday.map(w => `
+            <div style="background:linear-gradient(135deg,#ede9fe,#fce7f3)" class="rounded-xl p-3">
+              <div class="text-sm font-bold text-purple-700">${escHtml(w.name)}</div>
+              <div class="text-xs text-purple-500 mt-1 font-medium">${w.sets.length}セット実施</div>
+              ${w.sets.length > 0 ? `<div class="text-xs text-purple-400 mt-0.5">最大 ${Math.max(...w.sets.map(s=>s.weight||0))}kg × ${w.sets[0].reps}回</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>` : ''}
+
+      <!-- Quick Actions -->
+      <div class="card p-5">
+        <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">${icon('zap',16,'text-yellow-500')} クイックアクション</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <button onclick="navigate('body')" class="flex items-center gap-3 p-4 rounded-2xl text-sm font-bold text-purple-700 active:scale-95 transition-transform" style="background:linear-gradient(135deg,#ede9fe,#e9d5ff)">
+            ${icon('scale',22,'text-purple-600')}<span>体重を記録</span>
+          </button>
+          <button onclick="quickAddMeal()" class="flex items-center gap-3 p-4 rounded-2xl text-sm font-bold text-orange-700 active:scale-95 transition-transform" style="background:linear-gradient(135deg,#ffedd5,#fed7aa)">
+            ${icon('utensils',22,'text-orange-600')}<span>食事を追加</span>
+          </button>
+          <button onclick="navigate('workout')" class="flex items-center gap-3 p-4 rounded-2xl text-sm font-bold text-emerald-700 active:scale-95 transition-transform" style="background:linear-gradient(135deg,#d1fae5,#a7f3d0)">
+            ${icon('dumbbell',22,'text-emerald-600')}<span>筋トレ記録</span>
+          </button>
+          <button onclick="navigate('ai')" class="flex items-center gap-3 p-4 rounded-2xl text-sm font-bold text-fuchsia-700 active:scale-95 transition-transform" style="background:linear-gradient(135deg,#fae8ff,#f5d0fe)">
+            ${icon('sparkles',22,'text-fuchsia-600')}<span>AIに相談</span>
+          </button>
+        </div>
+      </div>
+
+      </div><!-- /page-inner -->
+    </div><!-- /page -->
+  `;
+
+  // Render chart after DOM update
+  if (weightData.labels.length >= 2) {
+    requestAnimationFrame(() => {
+      const canvas = document.getElementById('dash-chart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      activeChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: weightData.labels,
+          datasets: [{
+            data: weightData.weights,
+            borderColor: '#7c3aed',
+            backgroundColor: 'rgba(124,58,237,0.08)',
+            borderWidth: 2.5,
+            pointBackgroundColor: '#7c3aed',
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            fill: true,
+            tension: 0.4,
+            spanGaps: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { legend: { display: false }, tooltip: {
+            callbacks: { label: ctx => ` ${ctx.raw}kg` }
+          }},
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 7 } },
+            y: {
+              grid: { color: '#f1f5f9' },
+              ticks: { font: { size: 10 }, callback: v => v + 'kg' },
+              suggestedMin: weightData.weights.filter(Boolean).length ? Math.min(...weightData.weights.filter(Boolean)) - 2 : 0,
+              suggestedMax: weightData.weights.filter(Boolean).length ? Math.max(...weightData.weights.filter(Boolean)) + 2 : 100,
+            }
+          }
+        }
+      });
+    });
+  }
+}
+
+function quickAddMeal() {
+  const type = new Date().getHours() < 10 ? 'breakfast' : new Date().getHours() < 15 ? 'lunch' : 'dinner';
+  navigate('meals');
+  setTimeout(() => {
+    const tab = document.querySelector(`[data-meal="${type}"]`);
+    if (tab) tab.click();
+  }, 100);
+}
+
+// ============================================================
+// BODY RECORD
+// ============================================================
+function renderBody() {
+  const records = DB.getBodyRecords();
+  const td = today();
+  const todayRec = records.find(r => r.date === td) || {};
+
+  document.getElementById('page-content').innerHTML = `
+    <div class="page">
+      <div class="page-banner banner-body">
+        <div class="flex items-center gap-3 mb-1">${icon('scale',28,'text-white/90')}<span class="text-2xl font-black">体重・体型記録</span></div>
+        <div class="text-sm text-white/70 ml-1">毎日の記録が変化を生む</div>
+      </div>
+      <div class="page-inner">
+
+      <!-- Input Form -->
+      <div class="card p-6">
+        <h3 class="font-bold text-gray-700 mb-5 flex items-center gap-2">${icon('pencil',16,'text-purple-500')} 今日の記録</h3>
+        <form onsubmit="saveBodyRecord(event)" class="space-y-4">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div>
+              <label class="text-xs font-medium text-gray-500 block mb-1">日付</label>
+              <input type="date" id="b-date" value="${td}" max="${td}"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 ring-indigo-300">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-500 block mb-1">体重 (kg)</label>
+              <input type="number" id="b-weight" step="0.1" placeholder="70.0" value="${todayRec.weight || ''}"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 ring-indigo-300">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-500 block mb-1">体脂肪率 (%)</label>
+              <input type="number" id="b-fat" step="0.1" placeholder="20.0" value="${todayRec.bodyFat || ''}"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 ring-indigo-300">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-500 block mb-1">ウエスト (cm)</label>
+              <input type="number" id="b-waist" step="0.5" placeholder="80" value="${todayRec.waist || ''}"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 ring-indigo-300">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-500 block mb-1">胸囲 (cm)</label>
+              <input type="number" id="b-chest" step="0.5" placeholder="95" value="${todayRec.chest || ''}"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 ring-indigo-300">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-500 block mb-1">腕囲 (cm)</label>
+              <input type="number" id="b-arm" step="0.5" placeholder="35" value="${todayRec.arm || ''}"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 ring-indigo-300">
+            </div>
+            <div class="col-span-2">
+              <label class="text-xs font-medium text-gray-500 block mb-1">メモ</label>
+              <input type="text" id="b-note" placeholder="体調、睡眠など" value="${escHtml(todayRec.note || '')}"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 ring-indigo-300">
+            </div>
+          </div>
+          <button type="submit" class="btn-primary text-white px-6 py-2 rounded-lg font-medium hover:opacity-90 transition shadow-sm">
+            保存する
+          </button>
+        </form>
+      </div>
+
+      <!-- History -->
+      <div class="card p-6">
+        <h3 class="font-bold text-gray-700 mb-5 flex items-center gap-2">${icon('barChart',16,'text-purple-500')} 記録履歴</h3>
+        ${records.length === 0 ? `<div class="text-center py-8 text-gray-400">まだ記録がありません</div>` : `
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-xs text-gray-400 uppercase border-b">
+                <th class="text-left pb-2">日付</th>
+                <th class="text-right pb-2">体重</th>
+                <th class="text-right pb-2">体脂肪率</th>
+                <th class="text-right pb-2">ウエスト</th>
+                <th class="text-right pb-2">胸囲</th>
+                <th class="text-right pb-2"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-50">
+              ${records.slice(0, 30).map((r, i) => `
+                <tr class="hover:bg-gray-50">
+                  <td class="py-2.5 font-medium text-gray-700">${fmtDate(r.date)}${i === 0 ? ' <span class="text-xs bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full ml-1">最新</span>' : ''}</td>
+                  <td class="py-2.5 text-right font-semibold ${i > 0 && r.weight < records[i-1]?.weight ? 'text-green-500' : i > 0 && r.weight > records[i-1]?.weight ? 'text-red-400' : 'text-gray-700'}">${r.weight ? r.weight + 'kg' : '-'}</td>
+                  <td class="py-2.5 text-right text-gray-500">${r.bodyFat ? r.bodyFat + '%' : '-'}</td>
+                  <td class="py-2.5 text-right text-gray-500">${r.waist ? r.waist + 'cm' : '-'}</td>
+                  <td class="py-2.5 text-right text-gray-500">${r.chest ? r.chest + 'cm' : '-'}</td>
+                  <td class="py-2.5 text-right">
+                    <button onclick="editBodyRecord('${r.date}')" class="text-indigo-400 hover:text-indigo-600 text-xs mr-2">編集</button>
+                    <button onclick="deleteBodyRecord('${r.date}')" class="text-red-400 hover:text-red-600 text-xs">削除</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`}
+      </div>
+
+      </div><!-- /page-inner -->
+    </div><!-- /page -->
+  `;
+}
+
+function saveBodyRecord(e) {
+  e.preventDefault();
+  const date = document.getElementById('b-date').value;
+  const weight = parseFloat(document.getElementById('b-weight').value);
+  if (!date || !weight) { showToast('日付と体重を入力してください', false); return; }
+  DB.saveBodyRecord({
+    date,
+    weight: isNaN(weight) ? null : weight,
+    bodyFat: parseFloat(document.getElementById('b-fat').value) || null,
+    waist: parseFloat(document.getElementById('b-waist').value) || null,
+    chest: parseFloat(document.getElementById('b-chest').value) || null,
+    arm: parseFloat(document.getElementById('b-arm').value) || null,
+    note: document.getElementById('b-note').value
+  });
+  showToast('体重を記録しました！');
+  renderBody();
+}
+
+function editBodyRecord(date) {
+  const record = DB.getBodyRecords().find(r => r.date === date);
+  if (!record) return;
+  document.getElementById('b-date').value = record.date;
+  document.getElementById('b-weight').value = record.weight || '';
+  document.getElementById('b-fat').value = record.bodyFat || '';
+  document.getElementById('b-waist').value = record.waist || '';
+  document.getElementById('b-chest').value = record.chest || '';
+  document.getElementById('b-arm').value = record.arm || '';
+  document.getElementById('b-note').value = record.note || '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function deleteBodyRecord(date) {
+  if (!confirm(`${fmtDate(date)}のデータを削除しますか？`)) return;
+  const records = DB.getBodyRecords().filter(r => r.date !== date);
+  DB.set('body', records);
+  showToast('削除しました');
+  renderBody();
+}
+
+// ============================================================
+// MEALS
+// ============================================================
+let activeMealTab = 'breakfast';
+
+function renderMeals() {
+  const td = today();
+  const mealDate = window._mealDate || td;
+  const mealData = DB.getMeals(mealDate);
+
+  document.getElementById('page-content').innerHTML = `
+    <div class="page">
+      <div class="page-banner banner-meals">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <div class="flex items-center gap-3 mb-1">${icon('utensils',28,'text-white/90')}<span class="text-2xl font-black">食事管理</span></div>
+            <div class="text-sm text-white/70 ml-1">食べたものを記録しよう</div>
+          </div>
+          <input type="date" id="meal-date" value="${mealDate}" max="${td}"
+            onchange="window._mealDate=this.value;renderMeals()"
+            class="border-0 rounded-2xl px-3 py-2 text-sm font-semibold text-gray-700 bg-white/90 flex-shrink-0">
+        </div>
+      </div>
+      <div class="page-inner">
+
+      <!-- Calorie Summary -->
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <span class="font-bold text-gray-700 flex items-center gap-2">${icon('flame',16,'text-orange-500')} 合計カロリー</span>
+          <span class="text-2xl font-black text-orange-500">${totalCals(mealData)}<span class="text-sm font-normal text-gray-400 ml-1">kcal</span></span>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          ${['breakfast','lunch','dinner'].map(t => {
+            const tabIcons = { breakfast: icon('sunrise',14,'text-orange-600'), lunch: icon('sun',14,'text-orange-600'), dinner: icon('moon',14,'text-orange-600') };
+            const names = { breakfast:'朝食', lunch:'昼食', dinner:'夕食' };
+            const cal = (mealData[t]||[]).reduce((s,i)=>s+(Number(i.calories)||0),0);
+            return `<div class="text-center rounded-2xl p-3" style="background:linear-gradient(135deg,#fff7ed,#ffedd5)">
+              <div class="flex items-center justify-center gap-1 text-xs font-semibold text-orange-600 mb-1">${tabIcons[t]} ${names[t]}</div>
+              <div class="text-xl font-black text-orange-700">${cal}</div>
+              <div class="text-xs text-orange-400">kcal</div>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- Meal Tabs -->
+      <div class="card overflow-hidden">
+        <div class="flex gap-1.5 p-2 bg-gray-50/80">
+          ${['breakfast','lunch','dinner'].map(t => {
+            const tabIcons = { breakfast: icon('sunrise',16), lunch: icon('sun',16), dinner: icon('moon',16) };
+            const names = { breakfast:'朝食', lunch:'昼食', dinner:'夕食' };
+            const cal = (mealData[t]||[]).reduce((s,i)=>s+(Number(i.calories)||0),0);
+            return `<button onclick="switchMealTab('${t}','${mealDate}')"
+              data-meal="${t}"
+              class="flex-1 flex items-center justify-center gap-2 px-3 py-3 text-sm font-bold transition rounded-xl ${activeMealTab===t ? 'pop-tab-active' : 'text-gray-500 hover:text-gray-700 hover:bg-white'}">
+              ${tabIcons[t]} ${names[t]}${cal>0?`<span class="text-xs">(${cal})</span>`:''}
+            </button>`;
+          }).join('')}
+        </div>
+        <div id="meal-tab-content" class="p-5"></div>
+      </div>
+
+      </div><!-- /page-inner -->
+    </div><!-- /page -->
+  `;
+  renderMealTab(mealDate);
+}
+
+function switchMealTab(type, date) {
+  activeMealTab = type;
+  document.querySelectorAll('[data-meal]').forEach(btn => {
+    const isActive = btn.dataset.meal === type;
+    btn.className = `flex-1 flex items-center justify-center gap-2 px-3 py-3 text-sm font-bold transition rounded-xl ${isActive ? 'pop-tab-active' : 'text-gray-500 hover:text-gray-700 hover:bg-white'}`;
+  });
+  renderMealTab(date);
+}
+
+function renderMealTab(date, mealData) {
+  const type = activeMealTab;
+  _selectedFoodItem = null;
+  const items = (mealData || DB.getMeals(date))[type] || [];
+  const fsActiveClass = 'flex-1 text-xs font-bold py-1.5 rounded-xl transition pop-tab-active';
+  const fsInactiveClass = 'flex-1 text-xs font-bold py-1.5 rounded-xl transition text-gray-500 hover:bg-white/60';
+  document.getElementById('meal-tab-content').innerHTML = `
+    <div class="space-y-3">
+      <!-- Items List -->
+      <div class="space-y-2" id="meal-items">
+        ${items.length === 0 ? `<div class="text-center py-4 text-gray-400 text-sm">食事を追加してください</div>` : ''}
+        ${items.map((item, i) => `
+          <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-xl">
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium text-gray-700 truncate">${escHtml(item.name)}</div>
+              ${item.memo ? `<div class="text-xs text-gray-400 truncate">${escHtml(item.memo)}</div>` : ''}
+            </div>
+            <div class="text-sm font-semibold text-orange-500 whitespace-nowrap">${item.calories}kcal</div>
+            <button onclick="removeMealItem(${i},'${date}','${type}')" class="text-gray-300 hover:text-red-400 ml-1 flex-shrink-0 p-1">${icon('x',14)}</button>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- Add Item Form -->
+      <div class="border-t border-gray-100 pt-4 space-y-2.5">
+
+        <!-- Search Tabs -->
+        <div class="flex gap-1 p-1 bg-gray-100 rounded-2xl">
+          <button id="fs-tab-foods" onclick="switchFoodSearchTab('foods')"
+            class="${_foodSearchTab === 'foods' ? fsActiveClass : fsInactiveClass}">
+            ${icon('scale', 12)} 単発食材
+          </button>
+          <button id="fs-tab-recipes" onclick="switchFoodSearchTab('recipes')"
+            class="${_foodSearchTab === 'recipes' ? fsActiveClass : fsInactiveClass}">
+            ${icon('utensils', 12)} 料理・自炊
+          </button>
+        </div>
+
+        <!-- Search Input + Dropdown -->
+        <div class="relative" id="food-search-wrapper">
+          <div class="relative flex items-center">
+            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none">${icon('search', 14)}</span>
+            <input type="text" id="meal-name" placeholder="食品名を入力して検索…"
+              oninput="onFoodSearchInput(this.value)"
+              onfocus="onFoodSearchInput(this.value)"
+              onblur="setTimeout(()=>document.getElementById('food-dropdown')?.classList.add('hidden'),160)"
+              autocomplete="off"
+              class="w-full pl-9 pr-8 border border-gray-200 rounded-xl py-2.5 text-sm focus:outline-none focus:border-purple-300 focus:ring-2 focus:ring-purple-100 transition">
+            <button id="food-clear-btn" onmousedown="event.preventDefault()" onclick="clearFoodSearch()"
+              class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 p-0.5 rounded-full hover:bg-gray-100 transition">
+              ${icon('x', 13)}
+            </button>
+          </div>
+          <div id="food-db-loading" class="hidden text-center py-3 text-xs text-gray-400">
+            <span class="inline-block animate-spin mr-1">◌</span> データ読み込み中...
+          </div>
+          <!-- Dropdown -->
+          <div id="food-dropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50">
+            <div id="food-dropdown-inner" class="max-h-60 overflow-y-auto divide-y divide-gray-50"></div>
+          </div>
+        </div>
+
+        <!-- Selected food — quantity adjuster -->
+        <div id="food-qty-row" class="hidden p-3.5 rounded-2xl" style="background:linear-gradient(135deg,#ede9fe,#fce7f3)">
+          <div class="flex items-center gap-2 mb-2.5">
+            <span id="food-selected-name" class="text-sm font-bold text-purple-800 truncate flex-1"></span>
+            <span id="food-selected-cat" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-white/80 text-purple-600 flex-shrink-0"></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-medium text-purple-600 whitespace-nowrap">量を調整</span>
+            <input type="number" id="food-qty" value="1" min="0.1" step="0.1"
+              oninput="recalcFoodCal()"
+              class="w-16 border border-purple-200 rounded-lg px-2 py-1.5 text-sm text-center bg-white font-semibold focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-200">
+            <span id="food-unit-label" class="text-xs text-purple-500 flex-1 truncate"></span>
+            <span class="text-sm font-black text-purple-700 whitespace-nowrap" id="food-cal-preview"></span>
+          </div>
+        </div>
+
+        <!-- Calories input + Add button -->
+        <div class="flex gap-2 items-center">
+          <div class="relative flex-1">
+            <input type="number" id="meal-cal" placeholder="kcal"
+              oninput="this.dataset.aiSet='false';document.getElementById('cal-ai-badge')?.classList.add('hidden');document.getElementById('cal-ai-note')?.classList.add('hidden')"
+              class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm transition focus:outline-none focus:border-purple-300">
+            <span id="cal-spinner" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-indigo-400 text-xs animate-spin select-none">◌</span>
+            <span id="cal-ai-badge" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-indigo-400 text-xs select-none" title="AIが推定しました">✨</span>
+          </div>
+          <button onclick="addMealItem('${date}','${type}')"
+            class="btn-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:opacity-90 active:scale-95 transition whitespace-nowrap flex-shrink-0">
+            ${icon('plus', 14, 'inline')} 追加
+          </button>
+        </div>
+        <p id="cal-ai-note" class="hidden text-xs text-indigo-400">✨ AIが推定したカロリーです（目安）。必要に応じて修正してください。</p>
+
+        <!-- Quick presets -->
+        <div class="flex flex-wrap gap-1.5">
+          ${[['白米（茶碗1杯）',252],['食パン1枚',158],['鶏むね肉100g',116],['サラダチキン',105],['プロテイン',120],['バナナ1本',86],['コーヒー(無糖)',5],['牛乳200ml',137]].map(([n,c])=>
+            `<button onclick="quickAddFood('${n}',${c})" class="text-xs bg-gray-100 hover:bg-indigo-50 hover:text-indigo-600 text-gray-600 px-2.5 py-1 rounded-full transition">${n}</button>`
+          ).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  loadFoodDBs();
+}
+
+function quickAddFood(name, cal) {
+  _selectedFoodItem = null;
+  document.getElementById('meal-name').value = name;
+  document.getElementById('meal-cal').value = cal;
+  document.getElementById('food-qty-row')?.classList.add('hidden');
+  document.getElementById('food-dropdown')?.classList.add('hidden');
+  document.getElementById('food-clear-btn')?.classList.remove('hidden');
+  document.getElementById('cal-ai-badge')?.classList.add('hidden');
+  document.getElementById('cal-ai-note')?.classList.add('hidden');
+}
+
+// ============================================================
+// FOOD DATABASE SEARCH
+// ============================================================
+let foodsDB = null;
+let recipesDB = null;
+let _foodSearchTab = 'foods';
+let _selectedFoodItem = null;
+
+function loadFoodDBs() {
+  if (foodsDB && recipesDB) return;
+  try {
+    foodsDB = _FOODS_DATA;
+    recipesDB = _RECIPES_DATA;
+  } catch(e) {
+    showToast('食品データの初期化に失敗しました', false);
+  }
+}
+
+function switchFoodSearchTab(tab) {
+  _foodSearchTab = tab;
+  const activeClass = 'flex-1 text-xs font-bold py-1.5 rounded-xl transition pop-tab-active';
+  const inactiveClass = 'flex-1 text-xs font-bold py-1.5 rounded-xl transition text-gray-500 hover:bg-white/60';
+  const foodsBtn = document.getElementById('fs-tab-foods');
+  const recipesBtn = document.getElementById('fs-tab-recipes');
+  if (foodsBtn) foodsBtn.className = tab === 'foods' ? activeClass : inactiveClass;
+  if (recipesBtn) recipesBtn.className = tab === 'recipes' ? activeClass : inactiveClass;
+  const q = document.getElementById('meal-name')?.value || '';
+  renderFoodDropdown(q);
+}
+
+function onFoodSearchInput(val) {
+  const q = val.trim();
+  const clearBtn = document.getElementById('food-clear-btn');
+  if (clearBtn) clearBtn.classList.toggle('hidden', !val);
+  if (!foodsDB || !recipesDB) {
+    loadFoodDBs().then(() => renderFoodDropdown(q));
+    return;
+  }
+  renderFoodDropdown(q);
+  // AI fallback for non-DB entries (only if no DB selection active)
+  if (!_selectedFoodItem) debouncedCalLookup(val);
+}
+
+function renderFoodDropdown(q) {
+  const dropdown = document.getElementById('food-dropdown');
+  const inner = document.getElementById('food-dropdown-inner');
+  if (!dropdown || !inner) return;
+  if (!q || q.length < 1) { dropdown.classList.add('hidden'); return; }
+  const db = _foodSearchTab === 'recipes' ? recipesDB : foodsDB;
+  if (!db) { dropdown.classList.add('hidden'); return; }
+
+  const ql = q.toLowerCase();
+  const results = db.filter(f =>
+    f.name.toLowerCase().includes(ql) || (f.category && f.category.toLowerCase().includes(ql))
+  ).slice(0, 10);
+
+  if (results.length === 0) {
+    inner.innerHTML = `<div class="px-4 py-4 text-sm text-gray-400 text-center">${escHtml(q)}に一致する食品が見つかりません</div>`;
+  } else {
+    inner.innerHTML = results.map(item => {
+      const isSelected = _selectedFoodItem && _selectedFoodItem.id === item.id && _selectedFoodItem._tab === _foodSearchTab;
+      return `<button onmousedown="event.preventDefault()" onclick="selectFoodItem(${item.id})"
+        class="w-full flex items-center gap-3 px-4 py-2.5 text-left transition ${isSelected ? 'bg-purple-50' : 'hover:bg-purple-50/60'}">
+        <div class="flex-1 min-w-0">
+          <div class="text-sm font-semibold text-gray-800 truncate">${escHtml(item.name)}</div>
+          <div class="text-xs text-gray-400">${escHtml(item.unit)}</div>
+        </div>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">${escHtml(item.category)}</span>
+          <span class="text-sm font-bold text-orange-500 w-16 text-right">${item.calories}kcal</span>
+        </div>
+      </button>`;
+    }).join('');
+  }
+  dropdown.classList.remove('hidden');
+}
+
+function selectFoodItem(id) {
+  const db = _foodSearchTab === 'recipes' ? recipesDB : foodsDB;
+  if (!db) return;
+  const item = db.find(f => f.id === id);
+  if (!item) return;
+  _selectedFoodItem = { ...item, _tab: _foodSearchTab };
+
+  const nameInput = document.getElementById('meal-name');
+  if (nameInput) nameInput.value = item.name;
+
+  document.getElementById('food-dropdown')?.classList.add('hidden');
+
+  const qtyRow = document.getElementById('food-qty-row');
+  if (qtyRow) {
+    document.getElementById('food-selected-name').textContent = item.name;
+    document.getElementById('food-selected-cat').textContent = item.category;
+    document.getElementById('food-unit-label').textContent = `× ${item.unit}`;
+    document.getElementById('food-qty').value = 1;
+    qtyRow.classList.remove('hidden');
+  }
+  recalcFoodCal();
+  document.getElementById('food-clear-btn')?.classList.remove('hidden');
+}
+
+function recalcFoodCal() {
+  if (!_selectedFoodItem) return;
+  const qty = parseFloat(document.getElementById('food-qty')?.value) || 1;
+  const cal = Math.round(_selectedFoodItem.calories * qty);
+  const calInput = document.getElementById('meal-cal');
+  if (calInput) { calInput.value = cal; calInput.dataset.aiSet = 'false'; }
+  const preview = document.getElementById('food-cal-preview');
+  if (preview) preview.textContent = `${cal} kcal`;
+  const nameInput = document.getElementById('meal-name');
+  if (nameInput) nameInput.value = qty === 1 ? _selectedFoodItem.name : `${_selectedFoodItem.name} ×${qty}`;
+}
+
+function clearFoodSearch() {
+  _selectedFoodItem = null;
+  const nameInput = document.getElementById('meal-name');
+  if (nameInput) nameInput.value = '';
+  document.getElementById('food-dropdown')?.classList.add('hidden');
+  document.getElementById('food-qty-row')?.classList.add('hidden');
+  document.getElementById('meal-cal').value = '';
+  document.getElementById('food-clear-btn')?.classList.add('hidden');
+  nameInput?.focus();
+}
+
+// ============================================================
+// AI CALORIE AUTO-FILL
+// ============================================================
+let _calLookupTimer = null;
+
+function debouncedCalLookup(value) {
+  clearTimeout(_calLookupTimer);
+  // Reset indicators immediately on new input
+  const badge = document.getElementById('cal-ai-badge');
+  const spinner = document.getElementById('cal-spinner');
+  const note = document.getElementById('cal-ai-note');
+  if (badge) badge.classList.add('hidden');
+  if (note) note.classList.add('hidden');
+
+  const trimmed = value.trim();
+  if (trimmed.length < 2) return;
+
+  const settings = DB.getSettings();
+  if (!settings.apiKey) return; // silently skip if no API key
+
+  // Show spinner after short pause to avoid flicker on fast typers
+  _calLookupTimer = setTimeout(() => {
+    if (spinner) spinner.classList.remove('hidden');
+    autoFillCalories(trimmed);
+  }, 700);
+}
+
+async function autoFillCalories(foodName) {
+  const settings = DB.getSettings();
+  const calInput = document.getElementById('meal-cal');
+  const spinner = document.getElementById('cal-spinner');
+  const badge = document.getElementById('cal-ai-badge');
+  const note = document.getElementById('cal-ai-note');
+  if (!calInput || !settings.apiKey) return;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': settings.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-6',
+        max_tokens: 60,
+        thinking: { type: 'adaptive' },
+        messages: [{
+          role: 'user',
+          content: `食品・料理「${foodName}」の一般的な1食分（1人前）のカロリーをkcalの整数のみで答えてください。\n- 料理名なら一般的な1人前\n- 「〇〇g」と量が書かれていればその量\n- 量の記載がない単品食材なら100g相当\n数字のみ回答（単位・説明不要）。例: 252`
+        }]
+      })
+    });
+
+    if (!response.ok) return;
+    const data = await response.json();
+    const text = data.content?.find(b => b.type === 'text')?.text?.trim() || '';
+    const cal = parseInt(text.match(/^\d+/)?.[0]);
+
+    if (cal > 0 && cal < 9999) {
+      // Only fill if user hasn't manually typed a value since lookup started
+      if (!calInput.value || calInput.dataset.aiSet === 'true') {
+        calInput.value = cal;
+        calInput.dataset.aiSet = 'true';
+        calInput.classList.add('border-indigo-300');
+        setTimeout(() => calInput.classList.remove('border-indigo-300'), 1500);
+        if (badge) badge.classList.remove('hidden');
+        if (note) note.classList.remove('hidden');
+      }
+    }
+  } catch {
+    // silently fail — user can type manually
+  } finally {
+    if (spinner) spinner.classList.add('hidden');
+  }
+}
+
+function addMealItem(date, type) {
+  const name = document.getElementById('meal-name').value.trim();
+  const cal = parseInt(document.getElementById('meal-cal').value);
+  if (!name || !cal || isNaN(cal)) { showToast('食品名とカロリーを入力してください', false); return; }
+  const mealData = DB.getMeals(date);
+  mealData[type] = [...(mealData[type] || []), { name, calories: cal }];
+  DB.saveMeal(date, type, mealData[type]);
+  showToast(`${name}を追加しました！`);
+  renderMeals();
+}
+
+function removeMealItem(idx, date, type) {
+  const mealData = DB.getMeals(date);
+  mealData[type] = (mealData[type] || []).filter((_, i) => i !== idx);
+  DB.saveMeal(date, type, mealData[type]);
+  renderMeals();
+}
+
+// ============================================================
+// WORKOUT
+// ============================================================
+let workoutExercises = [];
+
+function renderWorkout() {
+  const td = today();
+  const wDate = window._workoutDate || td;
+  workoutExercises = JSON.parse(JSON.stringify(DB.getWorkouts(wDate)));
+
+  document.getElementById('page-content').innerHTML = `
+    <div class="page">
+      <div class="page-banner banner-workout">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <div class="flex items-center gap-3 mb-1">${icon('dumbbell',28,'text-white/90')}<span class="text-2xl font-black">筋トレ記録</span></div>
+            <div class="text-sm text-white/70 ml-1">今日も追い込め！</div>
+          </div>
+          <input type="date" id="workout-date" value="${wDate}" max="${td}"
+            onchange="window._workoutDate=this.value;renderWorkout()"
+            class="border-0 rounded-2xl px-3 py-2 text-sm font-semibold text-gray-700 bg-white/90 flex-shrink-0">
+        </div>
+      </div>
+      <div class="page-inner">
+      <div id="workout-content"></div>
+      </div><!-- /page-inner -->
+    </div><!-- /page -->
+  `;
+  renderWorkoutContent(wDate);
+}
+
+const EXERCISE_PRESETS = {
+  '胸': [
+    'ベンチプレス','インクラインベンチプレス','デクラインベンチプレス',
+    'ダンベルフライ','チェストフライ（マシン）','ケーブルクロスオーバー',
+    'ディップス','プッシュアップ','ナローグリップベンチプレス','ペックデック',
+  ],
+  '背中': [
+    'デッドリフト','ラットプルダウン','懸垂','チンアップ',
+    'ベントオーバーロウ','Tバーロウ','シーテッドロウ',
+    'ワンハンドロウ','フェイスプル','プルオーバー',
+  ],
+  '肩': [
+    'ショルダープレス','ダンベルショルダープレス','バーベルショルダープレス',
+    'アーノルドプレス','サイドレイズ','フロントレイズ',
+    'リアデルトフライ','アップライトロウ','ショルダーシュラッグ','ケーブルサイドレイズ',
+  ],
+  '腕': [
+    'アームカール','ハンマーカール','バーベルカール','インクラインカール',
+    'コンセントレーションカール','プリーチャーカール','リバースカール',
+    'トライセプスプレス','スカルクラッシャー','トライセプスキックバック',
+    'トライセプスエクステンション','ケーブルプッシュダウン',
+  ],
+  '下半身': [
+    'スクワット','フロントスクワット','ハックスクワット','ゴブレットスクワット',
+    'スモウスクワット','ブルガリアンスクワット','レッグプレス','ランジ',
+    'ウォーキングランジ','レッグエクステンション','レッグカール（ライイング）',
+    'レッグカール（シーテッド）','カーフレイズ','ヒップスラスト',
+    'ルーマニアンデッドリフト','スモウデッドリフト','ステップアップ',
+  ],
+  '体幹': [
+    'プランク','サイドプランク','クランチ','シットアップ','レッグレイズ',
+    'ニートゥーチェスト','ロシアンツイスト','バイシクルクランチ',
+    'マウンテンクライマー','アブローラー','ドラゴンフラッグ',
+    'ケーブルクランチ','ハンギングレッグレイズ',
+  ],
+  '有酸素': [
+    'ランニング','ウォーキング','バイク（エアロバイク）','ローイングマシン',
+    'エリプティカル','ステッパー','水泳','縄跳び',
+    'ジャンピングジャック','バーピー','ハイニー','シャドーボクシング',
+  ],
+};
+
+const EXERCISE_CAT_ICONS = {
+  '胸':   'dumbbell',
+  '背中': 'repeat',
+  '肩':   'zap',
+  '腕':   'target',
+  '下半身':'flame',
+  '体幹': 'activity',
+  '有酸素':'heart',
+};
+
+let activeExCategory = Object.keys(EXERCISE_PRESETS)[0];
+
+function renderWorkoutContent(date) {
+  const exercises = workoutExercises;
+
+  document.getElementById('workout-content').innerHTML = `
+    <!-- Exercises List -->
+    <div class="space-y-4" id="exercise-list">
+      ${exercises.length === 0 ? `<div class="card p-8 text-center text-gray-400">
+        <div class="flex justify-center mb-3 opacity-40">${icon('dumbbell', 48)}</div>
+        <p class="text-sm">種目を追加してトレーニングを記録しましょう</p>
+      </div>` : exercises.map((ex, ei) => `
+        <div class="card p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#7c3aed,#ec4899)">${icon('dumbbell',18,'text-white')}</div>
+              <h3 class="font-black text-gray-800">${escHtml(ex.name)}</h3>
+              <span class="text-xs font-bold px-2.5 py-1 rounded-full text-purple-700" style="background:linear-gradient(135deg,#ede9fe,#fce7f3)">${ex.sets.length}セット</span>
+            </div>
+            <button onclick="removeExercise(${ei},'${date}')" class="text-gray-300 hover:text-red-400 p-1 rounded-lg transition-colors">${icon('trash',16)}</button>
+          </div>
+
+          <!-- Sets -->
+          <div class="space-y-2 mb-3">
+            <div class="grid grid-cols-4 gap-2 text-xs text-gray-400 uppercase font-medium px-1">
+              <span>セット</span><span>重量(kg)</span><span>回数</span><span></span>
+            </div>
+            ${ex.sets.map((set, si) => `
+              <div class="grid grid-cols-4 gap-2 items-center set-row px-1 py-1 rounded">
+                <span class="text-sm text-gray-500 font-medium">Set ${si+1}</span>
+                <input type="number" value="${set.weight || ''}" step="2.5" min="0" placeholder="0"
+                  onchange="updateSet(${ei},${si},'weight',this.value,'${date}')"
+                  class="border border-gray-200 rounded px-2 py-1 text-sm text-center">
+                <input type="number" value="${set.reps || ''}" min="1" placeholder="10"
+                  onchange="updateSet(${ei},${si},'reps',this.value,'${date}')"
+                  class="border border-gray-200 rounded px-2 py-1 text-sm text-center">
+                <button onclick="removeSet(${ei},${si},'${date}')" class="text-gray-300 hover:text-red-400 p-1 justify-self-start transition-colors">${icon('x',14)}</button>
+              </div>
+            `).join('')}
+          </div>
+          <button onclick="addSet(${ei},'${date}')" class="text-sm text-purple-500 flex items-center gap-1.5 font-semibold mt-1">
+            ${icon('plus',14)} セットを追加
+          </button>
+        </div>
+      `).join('')}
+    </div>
+
+    <!-- Add Exercise -->
+    <div class="card overflow-hidden">
+      <div class="p-4 border-b border-gray-100">
+        <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">${icon('plus',16,'text-emerald-500')} 種目を追加</h3>
+        <div class="flex gap-2">
+          <input type="text" id="ex-name" placeholder="種目名を入力またはタップして選択"
+            list="exercise-presets-all"
+            class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm">
+          <datalist id="exercise-presets-all">
+            ${Object.values(EXERCISE_PRESETS).flat().map(p => `<option value="${p}">`).join('')}
+          </datalist>
+          <input type="number" id="ex-sets" value="3" min="1" max="20"
+            class="w-16 border border-gray-200 rounded-lg px-2 py-2 text-sm text-center" title="セット数">
+          <button onclick="addExercise('${date}')"
+            class="btn-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition whitespace-nowrap">追加</button>
+        </div>
+      </div>
+
+      <!-- Category Tabs -->
+      <div class="flex overflow-x-auto gap-1 p-2 bg-gray-50">
+        ${Object.keys(EXERCISE_PRESETS).map(cat => `
+          <button onclick="switchExCategory('${cat}','${date}')" data-excat="${cat}"
+            class="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition whitespace-nowrap rounded-xl
+              ${activeExCategory === cat ? 'pop-tab-active' : 'text-gray-500 hover:text-gray-700 hover:bg-white'}">
+            ${icon(EXERCISE_CAT_ICONS[cat] || 'dumbbell', 13)}${cat}
+          </button>`).join('')}
+      </div>
+
+      <!-- Preset Buttons -->
+      <div id="ex-preset-list" class="p-3 flex flex-wrap gap-1.5">
+        ${(EXERCISE_PRESETS[activeExCategory] || []).map(p => `
+          <button onclick="selectExercise('${p}')"
+            class="text-xs bg-white border border-gray-200 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 text-gray-600 px-2.5 py-1.5 rounded-lg transition">
+            ${p}
+          </button>`).join('')}
+      </div>
+    </div>
+
+    ${exercises.length > 0 ? `
+    <div class="card p-4">
+      <div class="flex items-center justify-between">
+        <div class="text-sm text-gray-600">
+          ${exercises.length}種目 / 総セット数: ${exercises.reduce((s,e)=>s+e.sets.length,0)}セット
+        </div>
+        <button onclick="navigate('ai')" class="text-sm text-purple-500 font-semibold flex items-center gap-1.5">${icon('sparkles',14)} AIにアドバイスをもらう ${icon('chevronRight',13)}</button>
+      </div>
+    </div>` : ''}
+  `;
+}
+
+function selectExercise(name) {
+  document.getElementById('ex-name').value = name;
+  document.getElementById('ex-name').focus();
+}
+
+function switchExCategory(cat, date) {
+  activeExCategory = cat;
+  // Update tab styles
+  document.querySelectorAll('[data-excat]').forEach(btn => {
+    const active = btn.dataset.excat === cat;
+    btn.className = `flex-shrink-0 px-3 py-2 text-xs font-bold transition whitespace-nowrap rounded-xl ${active ? 'pop-tab-active' : 'text-gray-500 hover:text-gray-700 hover:bg-white'}`;
+  });
+  // Re-render preset buttons only
+  const list = document.getElementById('ex-preset-list');
+  if (list) {
+    list.innerHTML = (EXERCISE_PRESETS[cat] || []).map(p => `
+      <button onclick="selectExercise('${p}')"
+        class="text-xs bg-white border border-gray-200 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 text-gray-600 px-2.5 py-1.5 rounded-lg transition">
+        ${p}
+      </button>`).join('');
+  }
+}
+
+function addExercise(date) {
+  const name = document.getElementById('ex-name').value.trim();
+  const setsCount = parseInt(document.getElementById('ex-sets').value) || 3;
+  if (!name) { showToast('種目名を入力してください', false); return; }
+  const sets = Array.from({length: setsCount}, () => ({weight: '', reps: ''}));
+  workoutExercises.push({ name, sets });
+  DB.saveWorkout(date, workoutExercises);
+  document.getElementById('ex-name').value = '';
+  showToast(`${name}を追加しました！`);
+  renderWorkoutContent(date);
+}
+
+function removeExercise(ei, date) {
+  workoutExercises.splice(ei, 1);
+  DB.saveWorkout(date, workoutExercises);
+  renderWorkoutContent(date);
+}
+
+function addSet(ei, date) {
+  workoutExercises[ei].sets.push({weight: '', reps: ''});
+  DB.saveWorkout(date, workoutExercises);
+  renderWorkoutContent(date);
+}
+
+function removeSet(ei, si, date) {
+  workoutExercises[ei].sets.splice(si, 1);
+  DB.saveWorkout(date, workoutExercises);
+  renderWorkoutContent(date);
+}
+
+function updateSet(ei, si, field, val, date) {
+  workoutExercises[ei].sets[si][field] = field === 'weight' ? parseFloat(val) : parseInt(val);
+  DB.saveWorkout(date, workoutExercises);
+}
+
+// ============================================================
+// PROGRESS
+// ============================================================
+function renderProgress() {
+  const records = DB.getBodyRecords();
+
+  document.getElementById('page-content').innerHTML = `
+    <div class="page">
+      <div class="page-banner banner-progress">
+        <div class="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <div class="flex items-center gap-3 mb-1">${icon('trendingUp',28,'text-white/90')}<span class="text-2xl font-black">進捗グラフ</span></div>
+            <div class="text-sm text-white/70 ml-1">積み重ねた努力を確認しよう</div>
+          </div>
+          <div class="flex gap-1.5">
+            ${[7,14,30,90].map(d => `
+              <button onclick="updateProgressChart(${d})" data-days="${d}"
+                class="px-3 py-1.5 text-xs rounded-xl font-bold transition ${d===30?'bg-white text-purple-700':'bg-white/20 text-white hover:bg-white/30'}">
+                ${d}日
+              </button>`).join('')}
+          </div>
+        </div>
+      </div>
+      <div class="page-inner">
+
+      <!-- Weight Chart -->
+      <div class="card p-6">
+        <h3 class="font-bold text-gray-700 mb-5 flex items-center gap-2">${icon('activity',16,'text-blue-500')} 体重推移</h3>
+        ${records.length < 2
+          ? `<div class="text-center py-10 text-gray-400"><span class="text-4xl block mb-2">📉</span>2日以上の記録が必要です</div>`
+          : `<canvas id="progress-weight-chart" height="100"></canvas>`}
+      </div>
+
+      <!-- Stats -->
+      ${records.length > 0 ? `
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        ${renderStatCards(records)}
+      </div>
+      ` : ''}
+
+      <!-- Calorie Chart -->
+      <div class="card p-6">
+        <h3 class="font-bold text-gray-700 mb-5 flex items-center gap-2">${icon('flame',16,'text-orange-500')} カロリー推移（直近14日）</h3>
+        <canvas id="progress-cal-chart" height="100"></canvas>
+      </div>
+
+      <!-- Records Table -->
+      <div class="card p-6">
+        <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">${icon('barChart',16,'text-purple-500')} 全記録</h3>
+        ${records.length === 0 ? '<div class="text-center py-8 text-gray-400">記録がありません</div>' : `
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead><tr class="text-xs text-gray-400 uppercase border-b">
+              <th class="text-left pb-2">日付</th>
+              <th class="text-right pb-2">体重</th>
+              <th class="text-right pb-2">体脂肪率</th>
+              <th class="text-right pb-2">ウエスト</th>
+              <th class="text-right pb-2">変化</th>
+            </tr></thead>
+            <tbody class="divide-y divide-gray-50">
+              ${records.slice(0,20).map((r,i) => {
+                const prev = records[i+1];
+                const diff = prev && r.weight && prev.weight ? (r.weight - prev.weight).toFixed(1) : null;
+                return `<tr class="hover:bg-gray-50">
+                  <td class="py-2">${fmtDate(r.date)}</td>
+                  <td class="py-2 text-right font-medium">${r.weight ? r.weight+'kg' : '-'}</td>
+                  <td class="py-2 text-right text-gray-500">${r.bodyFat ? r.bodyFat+'%' : '-'}</td>
+                  <td class="py-2 text-right text-gray-500">${r.waist ? r.waist+'cm' : '-'}</td>
+                  <td class="py-2 text-right ${diff ? (parseFloat(diff)<0?'text-green-500':'text-red-400') : 'text-gray-400'}">
+                    ${diff ? (parseFloat(diff)<0?'▼':'▲')+Math.abs(diff)+'kg' : '-'}
+                  </td>
+                </tr>`;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>`}
+      </div>
+
+      </div><!-- /page-inner -->
+    </div><!-- /page -->
+  `;
+
+  if (records.length >= 2) {
+    requestAnimationFrame(() => updateProgressChart(30));
+  }
+  renderCalChart();
+}
+
+function renderStatCards(records) {
+  const weights = records.map(r => r.weight).filter(Boolean);
+  if (weights.length === 0) return '';
+  const max = Math.max(...weights), min = Math.min(...weights);
+  const first = records[records.length-1].weight || 0;
+  const last = records[0].weight || 0;
+  const total = (last - first).toFixed(1);
+  const avg = (weights.reduce((s,w)=>s+w,0)/weights.length).toFixed(1);
+  const cardClasses = ['sc-purple', 'sc-blue', parseFloat(total) < 0 ? 'sc-green' : 'sc-surplus', 'sc-orange'];
+  const cardIcons  = ['target', 'scale', 'trendingUp', 'barChart'];
+  return [
+    ['開始時体重', first + 'kg'],
+    ['現在の体重', last + 'kg'],
+    ['変化量',    (parseFloat(total) < 0 ? '' : '+') + total + 'kg'],
+    ['平均体重',   avg + 'kg']
+  ].map(([label, val], i) => `
+    <div class="stat-card-pop ${cardClasses[i]} text-center">
+      <div class="flex justify-center mb-2 text-white/80">${icon(cardIcons[i], 24)}</div>
+      <div class="text-xs text-white/70 font-bold mb-1">${label}</div>
+      <div class="text-xl font-black text-white">${val}</div>
+    </div>
+  `).join('');
+}
+
+function updateProgressChart(days) {
+  document.querySelectorAll('[data-days]').forEach(btn => {
+    const isActive = parseInt(btn.dataset.days) === days;
+    btn.className = `px-3 py-1.5 text-xs rounded-xl font-bold transition ${isActive ? 'bg-white text-purple-700' : 'bg-white/20 text-white hover:bg-white/30'}`;
+  });
+
+  if (activeChart) { try { activeChart.destroy(); } catch {} activeChart = null; }
+
+  const data = getWeightChartData(days);
+  const canvas = document.getElementById('progress-weight-chart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  activeChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.labels,
+      datasets: [{
+        label: '体重 (kg)',
+        data: data.weights,
+        borderColor: '#6366f1',
+        backgroundColor: 'rgba(99,102,241,0.08)',
+        borderWidth: 2.5,
+        pointBackgroundColor: '#7c3aed',
+        pointRadius: 4,
+        fill: true,
+        tension: 0.3,
+        spanGaps: true
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.raw}kg` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 10 } },
+        y: {
+          grid: { color: '#f8fafc' },
+          ticks: { callback: v => v + 'kg' },
+          suggestedMin: data.weights.filter(Boolean).length ? Math.min(...data.weights.filter(Boolean)) - 2 : 0,
+          suggestedMax: data.weights.filter(Boolean).length ? Math.max(...data.weights.filter(Boolean)) + 2 : 100,
+        }
+      }
+    }
+  });
+}
+
+function renderCalChart() {
+  const canvas = document.getElementById('progress-cal-chart');
+  if (!canvas) return;
+  const data = getCalorieChartData(14);
+  const ctx = canvas.getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.labels,
+      datasets: [{
+        label: 'カロリー (kcal)',
+        data: data.calories,
+        backgroundColor: data.calories.map(c => {
+          const s = DB.getSettings();
+          return c > (s.targetCalories || 2000) ? 'rgba(248,113,113,0.7)' : 'rgba(99,102,241,0.7)';
+        }),
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { ticks: { callback: v => v + 'kcal' } }
+      }
+    }
+  });
+}
+
+// ============================================================
+// AI ADVICE
+// ============================================================
+let aiMessages = [];
+let isAiLoading = false;
+
+function renderAI() {
+  const settings = DB.getSettings();
+  const hasKey = !!settings.apiKey;
+
+  document.getElementById('page-content').innerHTML = `
+    <div class="page" style="display:flex;flex-direction:column;height:100dvh;overflow:hidden">
+      <!-- Header Banner -->
+      <div class="page-banner banner-ai flex-shrink-0">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="flex items-center gap-3 mb-1">${icon('sparkles',26,'text-white/90')}<span class="text-xl font-black">AIアドバイス</span></div>
+            <p class="text-xs text-white/70 ml-1">Claude AIがフィットネスをサポート</p>
+          </div>
+          <button onclick="clearAiChat()" class="text-xs text-white/70 border border-white/30 px-3 py-1.5 rounded-xl font-semibold active:scale-95 transition-transform">クリア</button>
+        </div>
+      </div>
+
+      ${!hasKey ? `
+      <div class="flex-1 overflow-y-auto px-4 pt-5 page-pad" style="background:white">
+        <div class="max-w-lg mx-auto space-y-4">
+
+          <!-- API key card -->
+          <div class="card p-5 flex items-start gap-4">
+            <div class="text-3xl flex-shrink-0">🔑</div>
+            <div class="flex-1">
+              <h3 class="font-semibold text-gray-700 mb-1">APIキーを設定するとチャットできます</h3>
+              <p class="text-xs text-gray-400 mb-3">Anthropic APIキーを設定すると、このアプリ内でClaudeと直接会話できます。</p>
+              <button onclick="navigate('settings')" class="btn-primary text-white px-5 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">
+                設定画面へ
+              </button>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div class="flex items-center gap-3 text-xs text-gray-400">
+            <div class="flex-1 h-px bg-gray-200"></div>
+            <span>または</span>
+            <div class="flex-1 h-px bg-gray-200"></div>
+          </div>
+
+          <!-- No-key usage area -->
+          <div class="card p-5 space-y-4">
+            <div>
+              <p class="text-sm font-medium text-gray-700 mb-2">質問テンプレート（コピーして使う）</p>
+              <div class="flex flex-wrap gap-2">
+                ${[
+                  '今週のトレーニングメニューを提案して',
+                  '体重が減らない原因を教えて',
+                  'バランスの良い食事プランは？',
+                  '筋トレ後の食事はどうすればいい？',
+                  'ダイエット中のモチベーション維持法は？',
+                  '停滞期を乗り越えるには？',
+                ].map(q => `<button onclick="copyQuestion('${q}')"
+                  class="text-xs font-semibold px-3 py-1.5 rounded-xl transition text-left"
+                  style="background:linear-gradient(135deg,#ede9fe,#fce7f3);color:#7c3aed">
+                  ${q}
+                </button>`).join('')}
+              </div>
+            </div>
+
+            <div>
+              <label class="text-xs font-medium text-gray-500 block mb-1.5">または自由に入力</label>
+              <div class="flex gap-2">
+                <input type="text" id="nokey-question" placeholder="AIへの質問を入力..."
+                  class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                <button onclick="copyCustomQuestion()"
+                  class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap">
+                  📋 コピー
+                </button>
+              </div>
+            </div>
+
+            <div class="border-t border-gray-100 pt-3 space-y-2">
+              <button onclick="copyDataForAI()"
+                class="w-full flex items-center justify-between px-4 py-3 bg-purple-50 hover:bg-purple-100 rounded-xl transition group">
+                <div class="flex items-center gap-2.5">
+                  <span class="text-xl">📋</span>
+                  <div class="text-left">
+                    <div class="text-sm font-semibold text-purple-700">データをコピーしてAIに相談</div>
+                    <div class="text-xs text-purple-400">体重・食事・筋トレのデータをまとめてコピー</div>
+                  </div>
+                </div>
+                <span class="text-purple-400 group-hover:translate-x-0.5 transition-transform text-sm">→</span>
+              </button>
+              <p class="text-xs text-gray-400 text-center">
+                コピー後は
+                <a href="https://claude.ai" target="_blank" rel="noopener" class="text-indigo-400 hover:underline">claude.ai</a>
+                や ChatGPT などに貼り付けて相談できます
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>` : `
+      <!-- Chat Messages -->
+      <div id="ai-messages" class="flex-1 overflow-y-auto px-4 pt-4 space-y-4 page-pad" style="background:white">
+        ${aiMessages.length === 0 ? `
+          <div class="text-center py-8 space-y-3">
+            <div class="text-5xl">🤖</div>
+            <p class="text-gray-500 text-sm">Claude AIがあなたのフィットネスをサポートします</p>
+            <div class="flex flex-wrap justify-center gap-2 mt-4">
+              ${[
+                '今週のトレーニングメニューを提案して',
+                '体重が減らない原因を教えて',
+                'バランスの良い食事プランは？',
+                '筋トレ後の食事はどうすればいい？',
+                '今日のデータを分析して'
+              ].map(q => `<button onclick="sendAiMessage('${q}')" class="text-xs font-semibold px-3 py-2 rounded-xl transition" style="background:linear-gradient(135deg,#ede9fe,#fce7f3);color:#7c3aed">${q}</button>`).join('')}
+            </div>
+          </div>
+        ` : aiMessages.map(m => `
+          <div class="flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}">
+            <div class="${m.role === 'user' ? 'chat-user-msg' : 'chat-ai-msg'} rounded-2xl px-4 py-3 max-w-xs md:max-w-md lg:max-w-lg text-sm leading-relaxed whitespace-pre-wrap">
+              ${m.role === 'assistant' ? `<div class="flex items-center gap-1.5 mb-1.5"><span class="text-base">🤖</span><span class="text-xs font-medium text-gray-400">Claude</span></div>` : ''}
+              ${escHtml(m.content)}
+            </div>
+          </div>
+        `).join('')}
+        <div id="ai-loading" class="hidden">
+          <div class="flex justify-start">
+            <div class="chat-ai-msg rounded-2xl px-4 py-3 text-sm text-gray-500">
+              <span class="flex items-center gap-1.5"><span class="text-base">🤖</span> 考え中<span class="ai-typing"></span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="p-4 border-t border-gray-100 flex-shrink-0" style="background:white;padding-bottom:calc(var(--nav-h) + 20px + env(safe-area-inset-bottom,0px))">
+        <div class="flex gap-2">
+          <input type="text" id="ai-input" placeholder="メッセージを入力..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAiMessage()}"
+            class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:ring-2 ring-indigo-300">
+          <button onclick="sendAiMessage()" id="ai-send-btn"
+            class="btn-primary text-white px-4 py-2.5 rounded-xl font-medium transition disabled:opacity-50 flex items-center gap-2">
+            ${icon('send',16,'text-white')} 送信
+          </button>
+        </div>
+      </div>
+      `}
+    </div>
+  `;
+
+  // Scroll to bottom
+  const msgContainer = document.getElementById('ai-messages');
+  if (msgContainer) msgContainer.scrollTop = msgContainer.scrollHeight;
+}
+
+async function sendAiMessage(quickMsg) {
+  if (isAiLoading) return;
+  const input = document.getElementById('ai-input');
+  const msg = quickMsg || (input ? input.value.trim() : '');
+  if (!msg) return;
+  if (input) input.value = '';
+
+  // Build context from user data
+  const settings = DB.getSettings();
+  const records = DB.getBodyRecords();
+  const td = today();
+  const todayMeals = DB.getMeals(td);
+  const todayWorkouts = DB.getWorkouts(td);
+
+  const contextStr = buildAiContext(records, todayMeals, todayWorkouts, settings);
+
+  aiMessages.push({ role: 'user', content: msg });
+  isAiLoading = true;
+  renderAI();
+
+  const loadingEl = document.getElementById('ai-loading');
+  if (loadingEl) loadingEl.classList.remove('hidden');
+
+  try {
+    const systemPrompt = `あなたは優秀なフィットネスコーチ・栄養士です。ユーザーのダイエット・筋トレをサポートするAIアドバイザーとして、科学的根拠に基づいた、親しみやすく実践的なアドバイスを日本語で提供してください。
+
+【ユーザーの現在データ】
+${contextStr}
+
+アドバイスは具体的・実践的で、モチベーションを高める内容にしてください。長すぎず、要点を絞ってください。`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': settings.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-6',
+        max_tokens: 1024,
+        system: systemPrompt,
+        messages: aiMessages.slice(-10).map(m => ({ role: m.role, content: m.content }))
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error?.message || `API Error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const replyText = data.content?.[0]?.text || 'すみません、回答を取得できませんでした。';
+    aiMessages.push({ role: 'assistant', content: replyText });
+  } catch (err) {
+    aiMessages.push({ role: 'assistant', content: `エラーが発生しました: ${err.message}\n\nAPIキーをご確認ください。` });
+  } finally {
+    isAiLoading = false;
+    renderAI();
+    const msgs = document.getElementById('ai-messages');
+    if (msgs) setTimeout(() => { msgs.scrollTop = msgs.scrollHeight; }, 50);
+  }
+}
+
+function buildAiContext(records, meals, workouts, settings) {
+  const lines = [];
+  if (settings.name) lines.push(`名前: ${settings.name}`);
+  if (settings.targetWeight) lines.push(`目標体重: ${settings.targetWeight}kg`);
+  if (settings.targetCalories) lines.push(`目標カロリー: ${settings.targetCalories}kcal/日`);
+
+  if (records.length > 0) {
+    lines.push(`現在の体重: ${records[0].weight}kg（${fmtDate(records[0].date)}時点）`);
+    if (records.length > 1) {
+      const diff = (records[0].weight - records[records.length-1].weight).toFixed(1);
+      lines.push(`記録開始からの変化: ${diff > 0 ? '+' : ''}${diff}kg（${records.length}日間）`);
+    }
+  }
+
+  const todayCals = totalCals(meals);
+  if (todayCals > 0) lines.push(`今日のカロリー: ${todayCals}kcal`);
+
+  if (workouts.length > 0) {
+    lines.push(`今日のトレーニング: ${workouts.map(w => w.name).join('、')}`);
+  }
+
+  return lines.join('\n') || '記録なし';
+}
+
+function clearAiChat() {
+  aiMessages = [];
+  renderAI();
+}
+
+// ============================================================
+// NO-KEY COPY HELPERS
+// ============================================================
+function copyQuestion(q) {
+  const input = document.getElementById('nokey-question');
+  if (input) input.value = q;
+  navigator.clipboard.writeText(q).then(() => showToast('コピーしました！'));
+}
+
+function copyCustomQuestion() {
+  const q = document.getElementById('nokey-question')?.value?.trim();
+  if (!q) { showToast('質問を入力してください', false); return; }
+  navigator.clipboard.writeText(q).then(() => showToast('コピーしました！'));
+}
+
+function copyDataForAI() {
+  const settings = DB.getSettings();
+  const records  = DB.getBodyRecords();
+  const td       = today();
+  const meals    = DB.getMeals(td);
+  const workouts = DB.getWorkouts(td);
+  const question = document.getElementById('nokey-question')?.value?.trim() || '（質問を入力してください）';
+
+  const currentWeight = records.length ? records[0].weight + 'kg' : '未記録';
+  const targetWeight  = settings.targetWeight ? settings.targetWeight + 'kg' : '未設定';
+  const todayCal      = totalCals(meals);
+  const targetCal     = settings.targetCalories || 2000;
+  const workoutNames  = workouts.length ? workouts.map(w => w.name).join('、') : 'なし';
+
+  let weightChange = '記録なし';
+  if (records.length >= 2) {
+    const diff = (records[0].weight - records[records.length - 1].weight).toFixed(1);
+    weightChange = (diff > 0 ? '+' : '') + diff + 'kg';
+  }
+
+  const mealLines = ['breakfast', 'lunch', 'dinner'].map(t => {
+    const label = { breakfast: '朝食', lunch: '昼食', dinner: '夕食' }[t];
+    const items = (meals[t] || []);
+    const cal   = items.reduce((s, i) => s + (Number(i.calories) || 0), 0);
+    return items.length
+      ? `  ${label}: ${items.map(i => i.name).join('、')}（${cal}kcal）`
+      : `  ${label}: 未記録`;
+  }).join('\n');
+
+  const workoutLines = workouts.length
+    ? workouts.map(w => {
+        const bestSet = w.sets.reduce((b, s) => (s.weight || 0) > (b.weight || 0) ? s : b, {});
+        return `  ${w.name}: ${w.sets.length}セット${bestSet.weight ? `（最大 ${bestSet.weight}kg × ${bestSet.reps}回）` : ''}`;
+      }).join('\n')
+    : '  なし';
+
+  const text = `=== FitTracker 今日のデータ ===
+📅 日付: ${new Date().toLocaleDateString('ja-JP', {year:'numeric',month:'long',day:'numeric',weekday:'long'})}
+⚖️ 現在の体重: ${currentWeight}
+🎯 目標体重: ${targetWeight}
+🔥 今日のカロリー: ${todayCal}kcal（目標: ${targetCal}kcal）
+📉 開始からの変化: ${weightChange}
+📊 記録日数: ${records.length}日
+
+【今日の食事】
+${mealLines}
+
+【今日のトレーニング】
+${workoutLines}
+
+【質問】
+${question}
+================================`;
+
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('コピーしました！ClaudeやGeminiに貼り付けてください ✓');
+  }).catch(() => {
+    showToast('コピーに失敗しました。手動でコピーしてください', false);
+  });
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function renderSettings() {
+  const s = DB.getSettings();
+  document.getElementById('page-content').innerHTML = `
+    <div class="page">
+      <div class="page-banner banner-settings">
+        <div class="flex items-center gap-3 mb-1">${icon('settings',28,'text-white/90')}<span class="text-2xl font-black">設定</span></div>
+        <div class="text-sm text-white/70 ml-1">アプリをカスタマイズしよう</div>
+      </div>
+      <div class="page-inner" style="max-width:640px">
+
+      <!-- Profile -->
+      <div class="card p-6">
+        <h3 class="font-bold text-gray-700 mb-5 flex items-center gap-2">${icon('user',16,'text-slate-500')} プロフィール</h3>
+        <div class="space-y-3">
+          <div>
+            <label class="text-xs font-medium text-gray-500 block mb-1">名前（ニックネーム）</label>
+            <input type="text" id="s-name" value="${escHtml(s.name||'')}" placeholder="例: たろう"
+              class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-500 block mb-1">目標体重 (kg)</label>
+            <input type="number" id="s-target-weight" value="${s.targetWeight||''}" step="0.5" placeholder="65.0"
+              class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+          </div>
+          <div>
+            <label class="text-xs font-medium text-gray-500 block mb-1">1日の目標カロリー (kcal)</label>
+            <input type="number" id="s-target-cal" value="${s.targetCalories||2000}" placeholder="2000"
+              class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+          </div>
+        </div>
+      </div>
+
+      <!-- API Key -->
+      <div class="card p-6">
+        <h3 class="font-bold text-gray-700 mb-2 flex items-center gap-2">${icon('key',16,'text-amber-500')} Claude API キー</h3>
+        <p class="text-xs text-gray-400 mb-3">AIアドバイス機能を使用するには Anthropic のAPIキーが必要です。キーはお使いのブラウザのLocalStorageにのみ保存されます。</p>
+        <div class="space-y-2">
+          <div class="relative">
+            <input type="password" id="s-api-key" value="${escHtml(s.apiKey||'')}" placeholder="sk-ant-..."
+              class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm pr-16">
+            <button onclick="toggleApiKeyVisibility()" class="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600">表示</button>
+          </div>
+          <p class="text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
+            ⚠️ APIキーはブラウザから直接APIを呼び出すために使用されます。個人利用・開発目的でのご利用をお勧めします。
+          </p>
+        </div>
+      </div>
+
+      <button onclick="saveSettings()" class="btn-primary text-white w-full py-2.5 rounded-lg font-medium hover:opacity-90 transition shadow-sm">
+        設定を保存する
+      </button>
+
+      <!-- Data Management -->
+      <div class="card p-6">
+        <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">${icon('clipboard',16,'text-slate-500')} データ管理</h3>
+        <div class="space-y-2.5">
+          <button onclick="exportData()" class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-gray-700 transition flex items-center gap-3">
+            ${icon('download',16,'text-gray-500')} データをエクスポート (JSON)
+          </button>
+          <button onclick="importData()" class="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-gray-700 transition flex items-center gap-3">
+            ${icon('upload',16,'text-gray-500')} データをインポート
+          </button>
+          <button onclick="clearAllData()" class="w-full text-left px-4 py-3 bg-red-50 hover:bg-red-100 rounded-xl text-sm text-red-600 transition flex items-center gap-3">
+            ${icon('trash',16,'text-red-500')} 全データを削除
+          </button>
+        </div>
+      </div>
+
+      <div class="text-center text-xs text-gray-400">
+        FitTracker v1.0 — データはすべてブラウザのLocalStorageに保存されます
+      </div>
+
+      </div><!-- /page-inner -->
+    </div><!-- /page -->
+  `;
+}
+
+function toggleApiKeyVisibility() {
+  const input = document.getElementById('s-api-key');
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+function saveSettings() {
+  DB.saveSettings({
+    name: document.getElementById('s-name').value,
+    targetWeight: parseFloat(document.getElementById('s-target-weight').value) || null,
+    targetCalories: parseInt(document.getElementById('s-target-cal').value) || 2000,
+    apiKey: document.getElementById('s-api-key').value.trim()
+  });
+  showToast('設定を保存しました！');
+}
+
+function exportData() {
+  const data = {
+    body: DB.getBodyRecords(),
+    meals: DB.getAllMeals(),
+    workouts: DB.getAllWorkouts(),
+    settings: { ...DB.getSettings(), apiKey: '***' },
+    exportedAt: new Date().toISOString()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `fittracker_${today()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('エクスポートしました！');
+}
+
+function importData() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (data.body) DB.set('body', data.body);
+        if (data.meals) DB.set('meals', data.meals);
+        if (data.workouts) DB.set('workouts', data.workouts);
+        showToast('インポートしました！');
+        renderSettings();
+      } catch { showToast('ファイルの読み込みに失敗しました', false); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
+function clearAllData() {
+  if (!confirm('全データを削除しますか？この操作は取り消せません。')) return;
+  ['body','meals','workouts'].forEach(k => localStorage.removeItem('ft_' + k));
+  showToast('データを削除しました');
+  renderDashboard();
+  navigate('dashboard');
+}
+
+// ============================================================
+// CHART DATA HELPERS
+// ============================================================
+function getWeightChartData(days) {
+  const records = DB.getBodyRecords();
+  const recordMap = {};
+  records.forEach(r => { if (r.weight) recordMap[r.date] = r.weight; });
+
+  const labels = [], weights = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    const shortDate = `${d.getMonth()+1}/${d.getDate()}`;
+    labels.push(shortDate);
+    weights.push(recordMap[dateStr] || null);
+  }
+  return { labels, weights };
+}
+
+function getCalorieChartData(days) {
+  const allMeals = DB.getAllMeals();
+  const labels = [], calories = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    const shortDate = `${d.getMonth()+1}/${d.getDate()}`;
+    labels.push(shortDate);
+    calories.push(totalCals(allMeals[dateStr] || null));
+  }
+  return { labels, calories };
+}
+
+// ============================================================
+// INIT
+// ============================================================
+navigate('dashboard');
+loadFoodDBs(); // バックグラウンドで食品DBをプリロード
+</script>
+</body>
+</html>
+`;
