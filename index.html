@@ -314,6 +314,8 @@
         padding-right: 16px;
         gap: 16px;
       }
+      /* iOS Safari の自動ズームを防ぐ: フォーカス時に16px未満だとズームする仕様のため */
+      input, select, textarea { font-size: 16px !important; }
     }
     @media (min-width: 769px) {
       #mobile-nav { display: none; }
