@@ -1,0 +1,33 @@
+name: Update SW Cache Version
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'sw.js'   # sw.jsのみの変更ではトリガーしない（ループ防止）
+
+jobs:
+  update-sw:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Update cache version timestamp
+        run: |
+          TIMESTAMP=$(date -u +"%Y%m%d%H%M%S")
+          sed -i "s/const CACHE_VERSION = 'v[0-9]*/const CACHE_VERSION = 'v${TIMESTAMP}/" sw.js
+          echo "Updated CACHE_VERSION to v${TIMESTAMP}"
+
+      - name: Commit updated sw.js
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add sw.js
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "chore: update SW cache version [skip ci]"
+            git push
+          fi

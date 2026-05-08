@@ -6,6 +6,20 @@
   <meta name="theme-color" content="#4f46e5">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+      // 新しいSWがアクティブになったら自動リロード
+      let _swRefreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (_swRefreshing) return;
+        _swRefreshing = true;
+        window.location.reload();
+      });
+    }
+  </script>
   <title>FitTracker - ダイエット・筋トレ管理</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -1444,16 +1458,15 @@ function renderMealTab(date, mealData) {
         `).join('')}
       </div>
 
-      <!-- Mobile: open bottom sheet -->
-      <div class="md:hidden border-t border-gray-100 pt-3">
+      <div class="border-t border-gray-100 pt-3">
+        ${window.innerWidth < 768 ? `
         <button onclick="openMealAddSheet('${date}','${type}')"
           class="w-full btn-primary text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
           ${icon('plus',16,'inline')} 食品を追加
-        </button>
-      </div>
-      <!-- Desktop: inline form -->
-      <div class="hidden md:block border-t border-gray-100 pt-4 space-y-2.5">
-        ${getMealAddFormHtml(date, type)}
+        </button>` : `
+        <div class="pt-1 space-y-2.5">
+          ${getMealAddFormHtml(date, type)}
+        </div>`}
       </div>
     </div>
   `;
@@ -1944,18 +1957,14 @@ function renderWorkoutContent(date) {
       }).join('')}
     </div>
 
-    <!-- Add Exercise: Mobile button -->
-    <div class="md:hidden">
-      <button onclick="openWorkoutAddSheet('${date}')"
-        class="w-full card p-4 flex items-center justify-center gap-2 text-sm font-bold text-emerald-600 hover:bg-emerald-50 transition">
-        ${icon('plus',16,'text-emerald-500')} 種目を追加
-      </button>
-    </div>
-
-    <!-- Add Exercise: Desktop inline -->
-    <div class="hidden md:block card overflow-hidden">
+    ${window.innerWidth < 768 ? `
+    <button onclick="openWorkoutAddSheet('${date}')"
+      class="w-full card p-4 flex items-center justify-center gap-2 text-sm font-bold text-emerald-600 hover:bg-emerald-50 transition">
+      ${icon('plus',16,'text-emerald-500')} 種目を追加
+    </button>` : `
+    <div class="card overflow-hidden">
       ${getWorkoutAddFormHtml(date)}
-    </div>
+    </div>`}
 
     ${exercises.length > 0 ? `
     <div class="card p-4">
