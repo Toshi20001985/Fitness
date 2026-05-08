@@ -596,6 +596,25 @@ const EXERCISE_MET = {
 // 1セットあたり: 実働45秒 + インターバル90秒 ≒ 2.25分
 const MINS_PER_SET = 2.25;
 
+// 有酸素種目の分類
+function getCardioType(name) {
+  if (['ランニング', 'ウォーキング'].includes(name)) return 'running';
+  if (['バイク（エアロバイク）'].includes(name)) return 'bike';
+  if (EXERCISE_PRESETS['有酸素'] && EXERCISE_PRESETS['有酸素'].includes(name)) return 'other-cardio';
+  return null;
+}
+
+// 自由記述からセット・回数を解析 (例: "10回×3セット")
+function parseCardioNote(note) {
+  const m1 = note.match(/(\d+)\s*[回x×]\s*(\d+)\s*セット/);
+  const m2 = note.match(/(\d+)\s*セット\s*[x×]\s*(\d+)\s*回/);
+  const m3 = note.match(/(\d+)\s*セット/);
+  const m4 = note.match(/(\d+)\s*回/);
+  if (m1) return { reps: parseInt(m1[1]), sets: parseInt(m1[2]) };
+  if (m2) return { sets: parseInt(m2[1]), reps: parseInt(m2[2]) };
+  return { sets: m3 ? parseInt(m3[1]) : 1, reps: m4 ? parseInt(m4[1]) : 0 };
+}
+
 function calcWorkoutCalories(date) {
   const workouts = DB.getWorkouts(date);
   if (!workouts.length) return 0;
@@ -604,8 +623,21 @@ function calcWorkoutCalories(date) {
   let total = 0;
   workouts.forEach(ex => {
     const met = EXERCISE_MET[ex.name] || 4.0;
-    const sets = ex.sets ? Math.max(ex.sets.filter(s => s.reps > 0).length, ex.sets.length, 1) : 1;
-    total += met * bw * (sets * MINS_PER_SET / 60);
+    const ct = getCardioType(ex.name);
+    if (ct === 'running' || ct === 'bike') {
+      // 区間ごとの時間合計（分）で計算
+      const mins = (ex.intervals || []).reduce((s, iv) => s + (parseFloat(iv.time) || 0), 0);
+      total += met * bw * (mins / 60);
+    } else if (ct === 'other-cardio') {
+      // 自由記述から解析
+      const parsed = parseCardioNote(ex.note || '');
+      const sets = Math.max(parsed.sets, 1);
+      total += met * bw * (sets * MINS_PER_SET / 60);
+    } else {
+      // 筋トレ
+      const sets = ex.sets ? Math.max(ex.sets.filter(s => s.reps > 0).length, ex.sets.length, 1) : 1;
+      total += met * bw * (sets * MINS_PER_SET / 60);
+    }
   });
   return Math.round(total);
 }
@@ -655,7 +687,12 @@ function renderDashboard() {
   const burnedCals = workoutCals + stepCals;
   const bmr = calcBMR();
   const netCals = todayCals - burnedCals - (bmr || 0);
-  const totalSets = workoutsToday.reduce((s, w) => s + (w.sets ? w.sets.length : 0), 0);
+  const totalSets = workoutsToday.reduce((s, w) => {
+    const ct = getCardioType(w.name);
+    if (ct === 'other-cardio') return s + parseCardioNote(w.note || '').sets;
+    if (ct === 'running' || ct === 'bike') return s + (w.intervals || []).length;
+    return s + (w.sets ? w.sets.length : 0);
+  }, 0);
   const todaySteps = DB.getSteps(td);
   const name = settings.name ? `、${settings.name}さん` : '';
   const lastRecord = records.length ? fmtDate(records[0].date) : '未記録';
@@ -1576,23 +1613,80 @@ function renderWorkoutContent(date) {
       ${exercises.length === 0 ? `<div class="card p-8 text-center text-gray-400">
         <div class="flex justify-center mb-3 opacity-40">${icon('dumbbell', 48)}</div>
         <p class="text-sm">種目を追加してトレーニングを記録しましょう</p>
-      </div>` : exercises.map((ex, ei) => `
-        <div class="card p-4">
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#0f766e,#0d9488)">${icon('dumbbell',18,'text-white')}</div>
-              <h3 class="font-black text-gray-800">${escHtml(ex.name)}</h3>
-              <span class="text-xs font-bold px-2.5 py-1 rounded-full text-teal-700 bg-teal-50">${ex.sets.length}セット</span>
-            </div>
-            <button onclick="removeExercise(${ei},'${date}')" class="text-gray-300 hover:text-red-400 p-1 rounded-lg transition-colors">${icon('trash',16)}</button>
-          </div>
+      </div>` : exercises.map((ex, ei) => {
+        const ct = getCardioType(ex.name);
+        const setsLabel = ct === 'running' || ct === 'bike'
+          ? `${(ex.intervals||[]).reduce((s,iv)=>s+(parseFloat(iv.time)||0),0)}分`
+          : ct === 'other-cardio'
+          ? `${parseCardioNote(ex.note||'').sets}セット`
+          : `${(ex.sets||[]).length}セット`;
 
-          <!-- Sets -->
+        let setsHtml = '';
+        if (ct === 'running') {
+          setsHtml = `
+          <div class="space-y-1.5 mb-3">
+            <div class="grid grid-cols-5 gap-1.5 text-xs text-teal-500 font-bold px-1 pb-1 border-b border-teal-100">
+              <span>区間</span><span>速度(km/h)</span><span>傾斜(%)</span><span>時間(分)</span><span></span>
+            </div>
+            ${(ex.intervals||[]).map((iv, si) => `
+              <div class="grid grid-cols-5 gap-1.5 items-center px-1 py-1 rounded-lg hover:bg-teal-50/50">
+                <span class="text-sm text-teal-600 font-bold">${si+1}</span>
+                <input type="number" value="${iv.speed||''}" step="0.5" min="0" placeholder="8.0"
+                  onchange="updateInterval(${ei},${si},'speed',this.value,'${date}')"
+                  class="border border-teal-200 bg-teal-50/60 rounded-lg px-1.5 py-1.5 text-sm text-center font-semibold text-teal-800 focus:border-teal-400 focus:bg-white">
+                <input type="number" value="${iv.incline||''}" step="0.5" min="0" placeholder="0"
+                  onchange="updateInterval(${ei},${si},'incline',this.value,'${date}')"
+                  class="border border-teal-200 bg-teal-50/60 rounded-lg px-1.5 py-1.5 text-sm text-center font-semibold text-teal-800 focus:border-teal-400 focus:bg-white">
+                <input type="number" value="${iv.time||''}" step="1" min="0" placeholder="30"
+                  onchange="updateInterval(${ei},${si},'time',this.value,'${date}')"
+                  class="border border-teal-200 bg-teal-50/60 rounded-lg px-1.5 py-1.5 text-sm text-center font-semibold text-teal-800 focus:border-teal-400 focus:bg-white">
+                <button onclick="removeInterval(${ei},${si},'${date}')" class="text-teal-200 hover:text-red-400 p-1 justify-self-start transition-colors">${icon('x',14)}</button>
+              </div>
+            `).join('')}
+          </div>
+          <button onclick="addInterval(${ei},'${date}')" class="text-sm text-teal-600 flex items-center gap-1.5 font-semibold mt-1">
+            ${icon('plus',14)} 区間を追加
+          </button>`;
+        } else if (ct === 'bike') {
+          setsHtml = `
+          <div class="space-y-1.5 mb-3">
+            <div class="grid grid-cols-5 gap-1.5 text-xs text-teal-500 font-bold px-1 pb-1 border-b border-teal-100">
+              <span>区間</span><span>速度(km/h)</span><span>負荷</span><span>時間(分)</span><span></span>
+            </div>
+            ${(ex.intervals||[]).map((iv, si) => `
+              <div class="grid grid-cols-5 gap-1.5 items-center px-1 py-1 rounded-lg hover:bg-teal-50/50">
+                <span class="text-sm text-teal-600 font-bold">${si+1}</span>
+                <input type="number" value="${iv.speed||''}" step="0.5" min="0" placeholder="20.0"
+                  onchange="updateInterval(${ei},${si},'speed',this.value,'${date}')"
+                  class="border border-teal-200 bg-teal-50/60 rounded-lg px-1.5 py-1.5 text-sm text-center font-semibold text-teal-800 focus:border-teal-400 focus:bg-white">
+                <input type="number" value="${iv.resistance||''}" step="1" min="0" placeholder="5"
+                  onchange="updateInterval(${ei},${si},'resistance',this.value,'${date}')"
+                  class="border border-teal-200 bg-teal-50/60 rounded-lg px-1.5 py-1.5 text-sm text-center font-semibold text-teal-800 focus:border-teal-400 focus:bg-white">
+                <input type="number" value="${iv.time||''}" step="1" min="0" placeholder="30"
+                  onchange="updateInterval(${ei},${si},'time',this.value,'${date}')"
+                  class="border border-teal-200 bg-teal-50/60 rounded-lg px-1.5 py-1.5 text-sm text-center font-semibold text-teal-800 focus:border-teal-400 focus:bg-white">
+                <button onclick="removeInterval(${ei},${si},'${date}')" class="text-teal-200 hover:text-red-400 p-1 justify-self-start transition-colors">${icon('x',14)}</button>
+              </div>
+            `).join('')}
+          </div>
+          <button onclick="addInterval(${ei},'${date}')" class="text-sm text-teal-600 flex items-center gap-1.5 font-semibold mt-1">
+            ${icon('plus',14)} 区間を追加
+          </button>`;
+        } else if (ct === 'other-cardio') {
+          setsHtml = `
+          <div class="mb-2">
+            <textarea rows="2" placeholder="例: 10回×3セット、20分、など自由に記録"
+              onchange="updateCardioNote(${ei},this.value,'${date}')"
+              class="w-full border border-teal-200 bg-teal-50/60 rounded-xl px-3 py-2.5 text-sm text-teal-800 focus:border-teal-400 focus:bg-white resize-none">${escHtml(ex.note||'')}</textarea>
+            ${ex.note ? `<p class="text-xs text-teal-500 mt-1">解析: ${parseCardioNote(ex.note).sets}セット / ${parseCardioNote(ex.note).reps}回</p>` : ''}
+          </div>`;
+        } else {
+          setsHtml = `
           <div class="space-y-1.5 mb-3">
             <div class="grid grid-cols-4 gap-2 text-xs text-teal-500 font-bold px-1 pb-1 border-b border-teal-100">
               <span>セット</span><span>重量 (kg)</span><span>回数</span><span></span>
             </div>
-            ${ex.sets.map((set, si) => `
+            ${(ex.sets||[]).map((set, si) => `
               <div class="grid grid-cols-4 gap-2 items-center px-1 py-1 rounded-lg hover:bg-teal-50/50 transition-colors">
                 <span class="text-sm text-teal-600 font-bold">S${si+1}</span>
                 <input type="number" value="${set.weight || ''}" step="2.5" min="0" placeholder="0"
@@ -1607,9 +1701,21 @@ function renderWorkoutContent(date) {
           </div>
           <button onclick="addSet(${ei},'${date}')" class="text-sm text-teal-600 flex items-center gap-1.5 font-semibold mt-1">
             ${icon('plus',14)} セットを追加
-          </button>
-        </div>
-      `).join('')}
+          </button>`;
+        }
+        return `
+        <div class="card p-4">
+          <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center gap-3">
+              <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#0f766e,#0d9488)">${icon('dumbbell',18,'text-white')}</div>
+              <h3 class="font-black text-gray-800">${escHtml(ex.name)}</h3>
+              <span class="text-xs font-bold px-2.5 py-1 rounded-full text-teal-700 bg-teal-50">${setsLabel}</span>
+            </div>
+            <button onclick="removeExercise(${ei},'${date}')" class="text-gray-300 hover:text-red-400 p-1 rounded-lg transition-colors">${icon('trash',16)}</button>
+          </div>
+          ${setsHtml}
+        </div>`;
+      }).join('')}
     </div>
 
     <!-- Add Exercise -->
@@ -1656,7 +1762,12 @@ function renderWorkoutContent(date) {
     <div class="card p-4">
       <div class="flex items-center justify-between">
         <div class="text-sm text-gray-600">
-          ${exercises.length}種目 / 総セット数: ${exercises.reduce((s,e)=>s+e.sets.length,0)}セット
+          ${exercises.length}種目 / 総セット数: ${exercises.reduce((s,e)=>{
+            const ct=getCardioType(e.name);
+            if(ct==='other-cardio') return s+parseCardioNote(e.note||'').sets;
+            if(ct==='running'||ct==='bike') return s+(e.intervals||[]).length;
+            return s+(e.sets||[]).length;
+          },0)}セット
         </div>
         <button onclick="navigate('ai')" class="text-sm text-teal-600 font-semibold flex items-center gap-1.5">${icon('sparkles',14)} AIにアドバイスをもらう ${icon('chevronRight',13)}</button>
       </div>
@@ -1689,10 +1800,18 @@ function switchExCategory(cat, date) {
 
 function addExercise(date) {
   const name = document.getElementById('ex-name').value.trim();
-  const setsCount = parseInt(document.getElementById('ex-sets').value) || 3;
   if (!name) { showToast('種目名を入力してください', false); return; }
-  const sets = Array.from({length: setsCount}, () => ({weight: '', reps: ''}));
-  workoutExercises.push({ name, sets });
+  const ct = getCardioType(name);
+  let entry;
+  if (ct === 'running' || ct === 'bike') {
+    entry = { name, intervals: [{ speed: '', incline: '', resistance: '', time: '' }] };
+  } else if (ct === 'other-cardio') {
+    entry = { name, note: '' };
+  } else {
+    const setsCount = parseInt(document.getElementById('ex-sets').value) || 3;
+    entry = { name, sets: Array.from({length: setsCount}, () => ({weight: '', reps: ''})) };
+  }
+  workoutExercises.push(entry);
   DB.saveWorkout(date, workoutExercises);
   document.getElementById('ex-name').value = '';
   showToast(`${name}を追加しました！`);
@@ -1719,6 +1838,28 @@ function removeSet(ei, si, date) {
 
 function updateSet(ei, si, field, val, date) {
   workoutExercises[ei].sets[si][field] = field === 'weight' ? parseFloat(val) : parseInt(val);
+  DB.saveWorkout(date, workoutExercises);
+}
+
+function addInterval(ei, date) {
+  workoutExercises[ei].intervals.push({ speed: '', incline: '', resistance: '', time: '' });
+  DB.saveWorkout(date, workoutExercises);
+  renderWorkoutContent(date);
+}
+
+function removeInterval(ei, si, date) {
+  workoutExercises[ei].intervals.splice(si, 1);
+  DB.saveWorkout(date, workoutExercises);
+  renderWorkoutContent(date);
+}
+
+function updateInterval(ei, si, field, val, date) {
+  workoutExercises[ei].intervals[si][field] = parseFloat(val) || '';
+  DB.saveWorkout(date, workoutExercises);
+}
+
+function updateCardioNote(ei, val, date) {
+  workoutExercises[ei].note = val;
   DB.saveWorkout(date, workoutExercises);
 }
 
