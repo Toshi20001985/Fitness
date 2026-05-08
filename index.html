@@ -1215,9 +1215,15 @@ function renderMeals() {
             <div class="flex items-center gap-3 mb-1">${icon('utensils',28,'text-white/90')}<span class="text-2xl font-black">食事管理</span></div>
             <div class="text-sm text-white/70 ml-1">食べたものを記録しよう</div>
           </div>
-          <input type="date" id="meal-date" value="${mealDate}" max="${td}"
-            onchange="window._mealDate=this.value;renderMeals()"
-            class="border-0 rounded-2xl px-3 py-2 text-sm font-semibold text-gray-700 bg-white/90 flex-shrink-0">
+          <div class="flex items-center gap-2 flex-shrink-0">
+            ${mealDate !== td ? `<button onclick="window._mealDate=null;renderMeals()"
+              class="text-xs font-bold px-3 py-2 rounded-2xl bg-white/25 text-white border border-white/30 active:scale-95 transition">
+              今日に戻る
+            </button>` : ''}
+            <input type="date" id="meal-date" value="${mealDate}" max="${td}"
+              onchange="window._mealDate=this.value;renderMeals()"
+              class="border-0 rounded-2xl px-3 py-2 text-sm font-semibold text-gray-700 bg-white/90">
+          </div>
         </div>
       </div>
       <div class="page-inner">
@@ -1669,9 +1675,15 @@ function renderWorkout() {
             <div class="flex items-center gap-3 mb-1">${icon('dumbbell',28,'text-white/90')}<span class="text-2xl font-black">筋トレ記録</span></div>
             <div class="text-sm text-white/70 ml-1">今日も追い込め！</div>
           </div>
-          <input type="date" id="workout-date" value="${wDate}" max="${td}"
-            onchange="window._workoutDate=this.value;renderWorkout()"
-            class="border-0 rounded-2xl px-3 py-2 text-sm font-semibold text-gray-700 bg-white/90 flex-shrink-0">
+          <div class="flex items-center gap-2 flex-shrink-0">
+            ${wDate !== td ? `<button onclick="window._workoutDate=null;renderWorkout()"
+              class="text-xs font-bold px-3 py-2 rounded-2xl bg-white/25 text-white border border-white/30 active:scale-95 transition">
+              今日に戻る
+            </button>` : ''}
+            <input type="date" id="workout-date" value="${wDate}" max="${td}"
+              onchange="window._workoutDate=this.value;renderWorkout()"
+              class="border-0 rounded-2xl px-3 py-2 text-sm font-semibold text-gray-700 bg-white/90">
+          </div>
         </div>
       </div>
       <div class="page-inner">
