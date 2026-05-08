@@ -300,6 +300,26 @@
     /* ── Icon ── */
     .icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .nav-icon svg { display: block; }
+
+    /* ── Bottom Sheet ── */
+    #bs-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 200;
+    }
+    #bs-overlay.open { display: block; }
+    #bs-sheet {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: white;
+      border-radius: 24px 24px 0 0;
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+      max-height: 90dvh;
+      overflow-y: auto;
+    }
+    #bs-overlay.open #bs-sheet { transform: translateY(0); }
   </style>
 </head>
 <body>
@@ -390,6 +410,17 @@
   </nav>
 
   <!-- Toast Notification -->
+  <!-- Bottom Sheet -->
+  <div id="bs-overlay" onclick="if(event.target===this)closeBottomSheet()">
+    <div id="bs-sheet">
+      <div style="display:flex;justify-content:center;padding:12px 0 4px">
+        <div style="width:40px;height:4px;border-radius:99px;background:#d1d5db"></div>
+      </div>
+      <div id="bs-title" style="font-size:17px;font-weight:900;padding:4px 20px 12px;color:#1f2937"></div>
+      <div id="bs-content" style="padding:0 20px 16px"></div>
+    </div>
+  </div>
+
   <div id="toast" class="fixed top-4 right-4 z-50 hidden">
     <div style="background:linear-gradient(135deg,#4338ca,#4f46e5)" class="text-white px-4 py-2.5 rounded-2xl text-sm shadow-lg flex items-center gap-2">
       <span id="toast-icon">✓</span>
@@ -516,6 +547,30 @@ function totalCals(mealObj) {
   return ['breakfast','lunch','dinner'].reduce((s, t) =>
     s + (mealObj[t] || []).reduce((a, i) => a + (Number(i.calories) || 0), 0), 0);
 }
+// ============================================================
+// BOTTOM SHEET
+// ============================================================
+function openBottomSheet(contentHtml, title) {
+  document.getElementById('bs-title').textContent = title || '';
+  document.getElementById('bs-content').innerHTML = contentHtml;
+  document.getElementById('bs-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeBottomSheet() {
+  const overlay = document.getElementById('bs-overlay');
+  overlay.classList.remove('open');
+  document.body.style.overflow = '';
+  // コンテンツはアニメーション完了後にクリア
+  setTimeout(() => { document.getElementById('bs-content').innerHTML = ''; }, 320);
+}
+function openMealAddSheet(date, type) {
+  openBottomSheet(getMealAddFormHtml(date, type), '食品を追加');
+  loadFoodDBs();
+}
+function openWorkoutAddSheet(date) {
+  openBottomSheet(getWorkoutAddFormHtml(date), '種目を追加');
+}
+
 function showToast(msg, ok = true) {
   const t = document.getElementById('toast');
   document.getElementById('toast-msg').textContent = msg;
@@ -1229,32 +1284,10 @@ function switchMealTab(type, date) {
   renderMealTab(date);
 }
 
-function renderMealTab(date, mealData) {
-  const type = activeMealTab;
-  _selectedFoodItem = null;
-  const items = (mealData || DB.getMeals(date))[type] || [];
+function getMealAddFormHtml(date, type) {
   const fsActiveClass = 'flex-1 text-xs font-bold py-1.5 rounded-xl transition pop-tab-active-rose';
   const fsInactiveClass = 'flex-1 text-xs font-bold py-1.5 rounded-xl transition text-gray-500 hover:bg-white/60';
-  document.getElementById('meal-tab-content').innerHTML = `
-    <div class="space-y-3">
-      <!-- Items List -->
-      <div class="space-y-2" id="meal-items">
-        ${items.length === 0 ? `<div class="text-center py-4 text-gray-400 text-sm">食事を追加してください</div>` : ''}
-        ${items.map((item, i) => `
-          <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-xl">
-            <div class="flex-1 min-w-0">
-              <div class="text-sm font-medium text-gray-700 truncate">${escHtml(item.name)}</div>
-              ${item.memo ? `<div class="text-xs text-gray-400 truncate">${escHtml(item.memo)}</div>` : ''}
-            </div>
-            <div class="text-sm font-semibold text-rose-500 whitespace-nowrap">${item.calories}kcal</div>
-            <button onclick="removeMealItem(${i},'${date}','${type}')" class="text-gray-300 hover:text-red-400 ml-1 flex-shrink-0 p-1">${icon('x',14)}</button>
-          </div>
-        `).join('')}
-      </div>
-
-      <!-- Add Item Form -->
-      <div class="border-t border-gray-100 pt-4 space-y-2.5">
-
+  return `
         <!-- Search Tabs -->
         <div class="flex gap-1 p-1 bg-gray-100 rounded-2xl">
           <button id="fs-tab-foods" onclick="switchFoodSearchTab('foods')"
@@ -1328,7 +1361,40 @@ function renderMealTab(date, mealData) {
           ${[['白米（茶碗1杯）',252],['食パン1枚',158],['鶏むね肉100g',116],['サラダチキン',105],['プロテイン',120],['バナナ1本',86],['コーヒー(無糖)',5],['牛乳200ml',137]].map(([n,c])=>
             `<button onclick="quickAddFood('${n}',${c})" class="text-xs bg-gray-100 hover:bg-rose-50 hover:text-rose-600 text-gray-600 px-2.5 py-1 rounded-full transition">${n}</button>`
           ).join('')}
-        </div>
+        </div>`;
+}
+
+function renderMealTab(date, mealData) {
+  const type = activeMealTab;
+  _selectedFoodItem = null;
+  const items = (mealData || DB.getMeals(date))[type] || [];
+  document.getElementById('meal-tab-content').innerHTML = `
+    <div class="space-y-3">
+      <!-- Items List -->
+      <div class="space-y-2" id="meal-items">
+        ${items.length === 0 ? `<div class="text-center py-4 text-gray-400 text-sm">食事を追加してください</div>` : ''}
+        ${items.map((item, i) => `
+          <div class="flex items-center gap-2 p-2 bg-gray-50 rounded-xl">
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium text-gray-700 truncate">${escHtml(item.name)}</div>
+              ${item.memo ? `<div class="text-xs text-gray-400 truncate">${escHtml(item.memo)}</div>` : ''}
+            </div>
+            <div class="text-sm font-semibold text-rose-500 whitespace-nowrap">${item.calories}kcal</div>
+            <button onclick="removeMealItem(${i},'${date}','${type}')" class="text-gray-300 hover:text-red-400 ml-1 flex-shrink-0 p-1">${icon('x',14)}</button>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- Mobile: open bottom sheet -->
+      <div class="md:hidden border-t border-gray-100 pt-3">
+        <button onclick="openMealAddSheet('${date}','${type}')"
+          class="w-full btn-primary text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+          ${icon('plus',16,'inline')} 食品を追加
+        </button>
+      </div>
+      <!-- Desktop: inline form -->
+      <div class="hidden md:block border-t border-gray-100 pt-4 space-y-2.5">
+        ${getMealAddFormHtml(date, type)}
       </div>
     </div>
   `;
@@ -1557,6 +1623,14 @@ function addMealItem(date, type) {
   DB.saveMeal(date, type, mealData[type]);
   showToast(`${name}を追加しました！`);
   renderMeals();
+  // モバイルでボトムシート内のフォームが残存する場合にリセット
+  const nameEl = document.getElementById('meal-name');
+  const calEl = document.getElementById('meal-cal');
+  if (nameEl) nameEl.value = '';
+  if (calEl) calEl.value = '';
+  document.getElementById('food-qty-row')?.classList.add('hidden');
+  document.getElementById('food-clear-btn')?.classList.add('hidden');
+  _selectedFoodItem = null;
 }
 
 function removeMealItem(idx, date, type) {
@@ -1650,6 +1724,46 @@ const EXERCISE_CAT_ICONS = {
 };
 
 let activeExCategory = Object.keys(EXERCISE_PRESETS)[0];
+
+function getWorkoutAddFormHtml(date) {
+  return `
+      <div class="p-4 border-b border-gray-100">
+        <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">${icon('plus',16,'text-emerald-500')} 種目を追加</h3>
+        <div class="flex flex-col gap-2">
+          <input type="text" id="ex-name" placeholder="種目名を入力またはタップして選択"
+            list="exercise-presets-all"
+            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+          <datalist id="exercise-presets-all">
+            ${Object.values(EXERCISE_PRESETS).flat().map(p => `<option value="${p}">`).join('')}
+          </datalist>
+          <div class="flex gap-2">
+            <input type="number" id="ex-sets" value="3" min="1" max="20"
+              class="w-20 border border-gray-200 rounded-lg px-2 py-2 text-sm text-center" title="セット数">
+            <button onclick="addExercise('${date}')"
+              class="flex-1 btn-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">追加</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Tabs -->
+      <div class="flex overflow-x-auto gap-1 p-2 bg-gray-50">
+        ${Object.keys(EXERCISE_PRESETS).map(cat => `
+          <button onclick="switchExCategory('${cat}','${date}')" data-excat="${cat}"
+            class="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition whitespace-nowrap rounded-xl
+              ${activeExCategory === cat ? 'pop-tab-active-teal' : 'text-gray-500 hover:text-gray-700 hover:bg-white'}">
+            ${icon(EXERCISE_CAT_ICONS[cat] || 'dumbbell', 13)}${cat}
+          </button>`).join('')}
+      </div>
+
+      <!-- Preset Buttons -->
+      <div id="ex-preset-list" class="p-3 flex flex-wrap gap-1.5">
+        ${(EXERCISE_PRESETS[activeExCategory] || []).map(p => `
+          <button onclick="selectExercise('${p}')"
+            class="text-xs bg-white border border-gray-200 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 text-gray-600 px-2.5 py-1.5 rounded-lg transition">
+            ${p}
+          </button>`).join('')}
+      </div>`;
+}
 
 function renderWorkoutContent(date) {
   const exercises = workoutExercises;
@@ -1765,44 +1879,17 @@ function renderWorkoutContent(date) {
       }).join('')}
     </div>
 
-    <!-- Add Exercise -->
-    <div class="card overflow-hidden">
-      <div class="p-4 border-b border-gray-100">
-        <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">${icon('plus',16,'text-emerald-500')} 種目を追加</h3>
-        <div class="flex flex-col gap-2">
-          <input type="text" id="ex-name" placeholder="種目名を入力またはタップして選択"
-            list="exercise-presets-all"
-            class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
-          <datalist id="exercise-presets-all">
-            ${Object.values(EXERCISE_PRESETS).flat().map(p => `<option value="${p}">`).join('')}
-          </datalist>
-          <div class="flex gap-2">
-            <input type="number" id="ex-sets" value="3" min="1" max="20"
-              class="w-20 border border-gray-200 rounded-lg px-2 py-2 text-sm text-center" title="セット数">
-            <button onclick="addExercise('${date}')"
-              class="flex-1 btn-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:opacity-90 transition">追加</button>
-          </div>
-        </div>
-      </div>
+    <!-- Add Exercise: Mobile button -->
+    <div class="md:hidden">
+      <button onclick="openWorkoutAddSheet('${date}')"
+        class="w-full card p-4 flex items-center justify-center gap-2 text-sm font-bold text-emerald-600 hover:bg-emerald-50 transition">
+        ${icon('plus',16,'text-emerald-500')} 種目を追加
+      </button>
+    </div>
 
-      <!-- Category Tabs -->
-      <div class="flex overflow-x-auto gap-1 p-2 bg-gray-50">
-        ${Object.keys(EXERCISE_PRESETS).map(cat => `
-          <button onclick="switchExCategory('${cat}','${date}')" data-excat="${cat}"
-            class="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-bold transition whitespace-nowrap rounded-xl
-              ${activeExCategory === cat ? 'pop-tab-active-teal' : 'text-gray-500 hover:text-gray-700 hover:bg-white'}">
-            ${icon(EXERCISE_CAT_ICONS[cat] || 'dumbbell', 13)}${cat}
-          </button>`).join('')}
-      </div>
-
-      <!-- Preset Buttons -->
-      <div id="ex-preset-list" class="p-3 flex flex-wrap gap-1.5">
-        ${(EXERCISE_PRESETS[activeExCategory] || []).map(p => `
-          <button onclick="selectExercise('${p}')"
-            class="text-xs bg-white border border-gray-200 hover:border-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 text-gray-600 px-2.5 py-1.5 rounded-lg transition">
-            ${p}
-          </button>`).join('')}
-      </div>
+    <!-- Add Exercise: Desktop inline -->
+    <div class="hidden md:block card overflow-hidden">
+      ${getWorkoutAddFormHtml(date)}
     </div>
 
     ${exercises.length > 0 ? `
