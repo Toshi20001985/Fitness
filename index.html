@@ -1197,6 +1197,27 @@ function renderMeals() {
     </div><!-- /page -->
   `;
   renderMealTab(mealDate);
+  _initMealSwipe(mealDate);
+}
+
+function _initMealSwipe(date) {
+  const el = document.getElementById('meal-tab-content');
+  if (!el) return;
+  const container = el.parentElement;
+  const MEAL_ORDER = ['breakfast', 'lunch', 'dinner'];
+  let startX = 0;
+  container.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    startX = e.touches[0].clientX;
+  }, { passive: true });
+  container.addEventListener('touchend', e => {
+    if (e.changedTouches.length !== 1) return;
+    const dx = e.changedTouches[0].clientX - startX;
+    if (Math.abs(dx) < 50) return;
+    const cur = MEAL_ORDER.indexOf(activeMealTab);
+    if (dx < 0 && cur < MEAL_ORDER.length - 1) switchMealTab(MEAL_ORDER[cur + 1], date);
+    else if (dx > 0 && cur > 0) switchMealTab(MEAL_ORDER[cur - 1], date);
+  }, { passive: true });
 }
 
 function switchMealTab(type, date) {
