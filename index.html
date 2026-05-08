@@ -691,6 +691,7 @@ function renderDashboard() {
     return s + (w.sets ? w.sets.length : 0);
   }, 0);
   const todaySteps = DB.getSteps(td);
+  const bwForCal = records.length && records[0].weight ? records[0].weight : 65;
   const name = settings.name ? `、${settings.name}さん` : '';
   const lastRecord = records.length ? fmtDate(records[0].date) : '未記録';
 
@@ -760,8 +761,13 @@ function renderDashboard() {
             <span class="text-white/60">${icon('dumbbell', 18)}</span>
           </div>
           <div class="text-3xl font-black text-white leading-none">${workoutsToday.length}<span class="text-sm font-medium text-white/60 ml-1">種目</span></div>
-          <div class="text-xs mt-2 text-white/70 font-medium">
-            ${workoutsToday.length > 0 ? workoutsToday.slice(0,2).map(w=>escHtml(w.name)).join('・') + (workoutsToday.length > 2 ? '…' : '') : '未記録'}
+          <div class="text-xs mt-2 text-white/70 space-y-0.5">
+            ${workoutsToday.length > 0
+              ? workoutsToday.map(w => {
+                  const cal = calcExerciseCalories(w, bwForCal);
+                  return `<div class="flex justify-between gap-2"><span class="truncate">${escHtml(w.name)}</span><span class="flex-shrink-0">${cal}kcal</span></div>`;
+                }).join('')
+              : '<div>未記録</div>'}
           </div>
         </div>
 
