@@ -1001,17 +1001,20 @@ function renderDashboard() {
         </div>
       </div>` : ''}
 
-      <!-- 今日の歩数 -->
+      <!-- 歩数記録 -->
       <div class="card p-5">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="font-bold text-gray-700 flex items-center gap-2">${icon('activity',16,'text-blue-500')} 今日の歩数</h3>
-          <span class="text-xs text-gray-400 font-medium">${new Date().toLocaleDateString('ja-JP',{month:'numeric',day:'numeric',weekday:'short'})}</span>
+        <h3 class="font-bold text-gray-700 mb-3 flex items-center gap-2">${icon('activity',16,'text-blue-500')} 歩数を記録</h3>
+        <div class="flex items-center gap-2 mb-3">
+          <input type="date" id="steps-date" value="${td}" max="${td}"
+            onchange="loadStepsForDate()"
+            class="border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition">
+          <span id="steps-date-label" class="text-xs text-gray-400 font-medium">${td === today() ? '今日' : ''}</span>
         </div>
         <div class="flex items-center gap-3">
           <input type="number" id="steps-input" value="${todaySteps || ''}" placeholder="例: 8000" min="0"
             oninput="updateStepsPreview()"
             class="flex-1 min-w-0 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition">
-          <button onclick="saveSteps('${td}')" class="btn-primary flex-shrink-0 text-white px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap">
+          <button onclick="saveStepsForDate()" class="btn-primary flex-shrink-0 text-white px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap">
             保存
           </button>
         </div>
@@ -1093,6 +1096,78 @@ function saveSteps(date) {
   DB.saveSteps(date, steps);
   showToast(`${steps.toLocaleString()}歩を保存しました！`);
   renderDashboard();
+}
+
+function saveStepsForDate() {
+  const dateInput = document.getElementById('steps-date');
+  const stepsInput = document.getElementById('steps-input');
+  const date = dateInput ? dateInput.value : today();
+  const steps = parseInt(stepsInput.value) || 0;
+  DB.saveSteps(date, steps);
+  const label = date === today() ? '今日' : date;
+  showToast(`${label}の歩数 ${steps.toLocaleString()}歩を保存しました！`);
+  renderDashboard();
+}
+
+function loadStepsForDate() {
+  const dateInput = document.getElementById('steps-date');
+  const stepsInput = document.getElementById('steps-input');
+  const label = document.getElementById('steps-date-label');
+  if (!dateInput || !stepsInput) return;
+  const date = dateInput.value;
+  const steps = DB.getSteps(date);
+  stepsInput.value = steps || '';
+  if (label) label.textContent = date === today() ? '今日' : '';
+  updateStepsPreview();
+}
+
+function openStepsEditor(date) {
+  const steps = DB.getSteps(date);
+  const records = DB.getBodyRecords();
+  const bw = records.length && records[0].weight ? records[0].weight : 60;
+  const dt = new Date(date + 'T00:00:00');
+  const weekDays = ['日','月','火','水','木','金','土'];
+  const dateLabel = `${dt.getMonth()+1}月${dt.getDate()}日（${weekDays[dt.getDay()]}）`;
+  openBottomSheet(`
+    <div class="p-1 space-y-4">
+      <p class="text-sm text-gray-500 font-medium">${dateLabel}の歩数を編集</p>
+      <div class="flex items-center gap-3">
+        <input type="number" id="bs-steps-input" value="${steps || ''}" placeholder="例: 8000" min="0"
+          oninput="updateBsStepsPreview('${date}')"
+          class="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition">
+        <button onclick="saveBsSteps('${date}')"
+          class="btn-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap">
+          保存
+        </button>
+      </div>
+      <p id="bs-steps-preview" class="text-xs text-blue-500 font-medium">
+        ${steps > 0 ? `${steps.toLocaleString()}歩 → 約${Math.round(steps*0.035*bw)}kcal消費` : '歩数を入力してください'}
+      </p>
+    </div>
+  `, '歩数を編集');
+}
+
+function updateBsStepsPreview(date) {
+  const input = document.getElementById('bs-steps-input');
+  const preview = document.getElementById('bs-steps-preview');
+  if (!input || !preview) return;
+  const steps = parseInt(input.value) || 0;
+  if (steps > 0) {
+    const records = DB.getBodyRecords();
+    const bw = records.length && records[0].weight ? records[0].weight : 60;
+    preview.textContent = `${steps.toLocaleString()}歩 → 約${Math.round(steps*0.035*bw)}kcal消費`;
+  } else {
+    preview.textContent = '歩数を入力してください';
+  }
+}
+
+function saveBsSteps(date) {
+  const input = document.getElementById('bs-steps-input');
+  const steps = parseInt(input.value) || 0;
+  DB.saveSteps(date, steps);
+  closeBottomSheet();
+  showToast(`${steps.toLocaleString()}歩を保存しました！`);
+  renderHistory();
 }
 
 function updateStepsPreview() {
@@ -2851,6 +2926,10 @@ function renderHistory() {
               class="flex-1 text-xs font-bold py-2 rounded-xl border border-teal-200 text-teal-700 hover:bg-teal-50 transition active:scale-95">
               筋トレを見る
             </button>` : ''}
+            <button onclick="openStepsEditor('${date}')"
+              class="flex-1 text-xs font-bold py-2 rounded-xl border border-blue-200 text-blue-600 hover:bg-blue-50 transition active:scale-95">
+              歩数を編集
+            </button>
           </div>
         </div>`;
       }).join('');
