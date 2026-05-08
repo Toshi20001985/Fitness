@@ -21,12 +21,6 @@
       --nav-h:    72px;
       --safe-top:    env(safe-area-inset-top, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 0px);
-      --theme-pri:  #4338ca;
-      --theme-sec:  #4f46e5;
-      --theme-drk:  #312e81;
-      --theme-dkr:  #1e1b4b;
-      --theme-sh:   rgba(67,56,202,0.30);
-      --theme-sh2:  rgba(67,56,202,0.40);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; }
@@ -59,13 +53,11 @@
     }
 
     /* ── Animations ── */
-    .page { animation: popIn 0.32s cubic-bezier(0.34,1.56,0.64,1) both; }
+    .page { animation: popIn 0.28s cubic-bezier(.34,1.56,.64,1); }
     @keyframes popIn {
-      from { opacity:0; transform:translateY(16px) scale(0.98); }
-      to   { opacity:1; transform:translateY(0) scale(1); }
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
-    @keyframes toastIn { from { opacity:0; transform:scale(0.8) translateY(-8px); } to { opacity:1; transform:scale(1) translateY(0); } }
-    .toast-animate { animation: toastIn 0.25s cubic-bezier(0.34,1.56,0.64,1) both; }
     .progress-bar { transition: width 0.6s cubic-bezier(.34,1.56,.64,1); }
     .ai-typing::after { content: '▋'; animation: blink 0.7s step-end infinite; }
     @keyframes blink { 50% { opacity: 0; } }
@@ -78,7 +70,9 @@
     }
 
     /* ── Sidebar (desktop) ── */
-    .sidebar-bg { background: linear-gradient(160deg, var(--theme-dkr) 0%, var(--theme-drk) 55%, var(--theme-pri) 100%); }
+    .sidebar-bg {
+      background: linear-gradient(160deg, #1e1b4b 0%, #312e81 55%, #4338ca 100%);
+    }
     .sidebar-link { transition: all 0.18s; border-radius: 12px; }
     .sidebar-link.active {
       background: rgba(255,255,255,0.22);
@@ -118,7 +112,7 @@
     }
     .stat-card-pop:active { transform: scale(0.97); }
 
-    .sc-purple { background: linear-gradient(135deg, var(--theme-pri) 0%, var(--theme-sec) 100%); box-shadow: 0 8px 24px var(--theme-sh); }
+    .sc-purple { background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%); box-shadow: 0 8px 24px rgba(67,56,202,0.30); }
     .sc-orange { background: linear-gradient(135deg, #9f1239 0%, #e11d48 100%); box-shadow: 0 8px 24px rgba(159,18,57,0.28); }
     .sc-red    { background: linear-gradient(135deg, #065f46 0%, #059669 100%); box-shadow: 0 8px 24px rgba(6,95,70,0.28); }
     .sc-green  { background: linear-gradient(135deg, #0f766e 0%, #0d9488 100%); box-shadow: 0 8px 24px rgba(15,118,110,0.28); }
@@ -128,19 +122,19 @@
 
     /* ── Buttons ── */
     .btn-primary {
-      background: linear-gradient(135deg, var(--theme-pri), var(--theme-sec));
+      background: linear-gradient(135deg, #4338ca, #4f46e5);
       color: white; border: none;
       border-radius: 14px;
       transition: all 0.2s;
-      box-shadow: 0 4px 14px var(--theme-sh);
+      box-shadow: 0 4px 14px rgba(67,56,202,0.30);
       -webkit-tap-highlight-color: transparent;
       user-select: none;
     }
-    .btn-primary:active { transform: scale(0.93); transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1); }
+    .btn-primary:active { transform: scale(0.96); }
     @media (hover: hover) {
       .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px var(--theme-sh2);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(67,56,202,0.40);
       }
     }
 
@@ -159,10 +153,10 @@
 
     /* ── Tabs ── */
     .pop-tab-active {
-      background: linear-gradient(135deg, var(--theme-pri), var(--theme-sec)) !important;
+      background: linear-gradient(135deg, #4338ca, #4f46e5) !important;
       color: white !important;
       border-radius: 99px !important;
-      box-shadow: 0 3px 10px var(--theme-sh);
+      box-shadow: 0 3px 10px rgba(67,56,202,0.30);
     }
     .pop-tab-active-rose {
       background: linear-gradient(135deg, #9f1239, #e11d48) !important;
@@ -178,7 +172,7 @@
     }
 
     /* ── Chat ── */
-    .chat-user-msg { background: linear-gradient(135deg, var(--theme-pri), var(--theme-sec)); color: white; border-radius: 20px 20px 4px 20px; }
+    .chat-user-msg { background: linear-gradient(135deg, #4338ca, #4f46e5); color: white; border-radius: 20px 20px 4px 20px; }
     .chat-ai-msg   { background: white; border: 1px solid #e0e7ff; color: #1e293b; border-radius: 20px 20px 20px 4px; box-shadow: 0 2px 8px rgba(67,56,202,0.07); }
 
     /* ── Page Banners (full-bleed on mobile) ── */
@@ -271,7 +265,7 @@
       white-space: nowrap;
     }
     .mob-item.mob-active {
-      background: linear-gradient(135deg, var(--theme-pri), var(--theme-sec));
+      background: linear-gradient(135deg, #4338ca, #4f46e5);
     }
     .mob-item.mob-active .mob-label {
       color: white;
@@ -306,20 +300,6 @@
     /* ── Icon ── */
     .icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .nav-icon svg { display: block; }
-
-    /* Bottom Sheet */
-    #bs-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:199; opacity:0; transition:opacity 0.28s; }
-    #bs-overlay.bs-open { display:block; opacity:1; }
-    #bottom-sheet {
-      position:fixed; bottom:0; left:0; right:0;
-      background:white; border-radius:24px 24px 0 0;
-      z-index:200; max-height:90vh; overflow-y:auto;
-      padding-bottom:calc(16px + env(safe-area-inset-bottom,0px));
-      transform:translateY(100%);
-      transition:transform 0.32s cubic-bezier(0.34,1.56,0.64,1);
-    }
-    #bottom-sheet.bs-open { transform:translateY(0); }
-    .bs-handle { width:40px; height:4px; background:#d1d5db; border-radius:2px; margin:12px auto 8px; }
   </style>
 </head>
 <body>
@@ -411,17 +391,10 @@
 
   <!-- Toast Notification -->
   <div id="toast" class="fixed top-4 right-4 z-50 hidden">
-    <div id="toast-inner" class="text-white px-4 py-2.5 rounded-2xl text-sm shadow-lg flex items-center gap-2">
+    <div style="background:linear-gradient(135deg,#4338ca,#4f46e5)" class="text-white px-4 py-2.5 rounded-2xl text-sm shadow-lg flex items-center gap-2">
       <span id="toast-icon">✓</span>
       <span id="toast-msg"></span>
     </div>
-  </div>
-
-  <!-- Bottom Sheet -->
-  <div id="bs-overlay" onclick="closeBottomSheet()"></div>
-  <div id="bottom-sheet">
-    <div class="bs-handle"></div>
-    <div id="bs-content"></div>
   </div>
 
 <script>
@@ -534,54 +507,12 @@ function totalCals(mealObj) {
     s + (mealObj[t] || []).reduce((a, i) => a + (Number(i.calories) || 0), 0), 0);
 }
 function showToast(msg, ok = true) {
-  haptic(ok ? [10,50,10] : [50,30,50]);
   const t = document.getElementById('toast');
-  const inner = document.getElementById('toast-inner');
   document.getElementById('toast-msg').textContent = msg;
   document.getElementById('toast-icon').textContent = ok ? '✓' : '⚠';
-  inner.style.background = ok ? 'linear-gradient(135deg,var(--theme-pri,#4338ca),var(--theme-sec,#4f46e5))' : 'linear-gradient(135deg,#dc2626,#ef4444)';
-  inner.classList.remove('toast-animate');
-  void inner.offsetWidth; // reflow to restart animation
-  inner.classList.add('toast-animate');
   t.classList.remove('hidden');
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => t.classList.add('hidden'), 2500);
+  setTimeout(() => t.classList.add('hidden'), 2500);
 }
-
-function haptic(pattern) {
-  try { if (navigator.vibrate) navigator.vibrate(pattern); } catch {}
-}
-
-// ============================================================
-// BOTTOM SHEET
-// ============================================================
-let _bsStartY = 0;
-function openBottomSheet(html, title) {
-  haptic(10);
-  document.getElementById('bs-content').innerHTML = (title ? `<div class="px-5 pb-2 font-bold text-gray-700">${title}</div>` : '') + html;
-  document.getElementById('bs-overlay').classList.add('bs-open');
-  const sheet = document.getElementById('bottom-sheet');
-  sheet.classList.add('bs-open');
-  // drag to close
-  sheet.ontouchstart = e => { _bsStartY = e.touches[0].clientY; };
-  sheet.ontouchmove = e => {
-    const dy = e.touches[0].clientY - _bsStartY;
-    if (dy > 0) { sheet.style.transform = `translateY(${dy}px)`; e.preventDefault(); }
-  };
-  sheet.ontouchend = e => {
-    const dy = e.changedTouches[0].clientY - _bsStartY;
-    sheet.style.transform = '';
-    if (dy > 80) closeBottomSheet(); else sheet.classList.add('bs-open');
-  };
-  loadFoodDBs();
-}
-
-function closeBottomSheet() {
-  document.getElementById('bottom-sheet').classList.remove('bs-open');
-  document.getElementById('bs-overlay').classList.remove('bs-open');
-  setTimeout(() => { document.getElementById('bs-content').innerHTML = ''; }, 350);
-}
-
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
@@ -593,7 +524,6 @@ let currentPage = 'dashboard';
 let activeChart = null;
 
 function navigate(page) {
-  haptic(10);
   currentPage = page;
   // Destroy existing chart
   if (activeChart) { try { activeChart.destroy(); } catch {} activeChart = null; }
@@ -664,7 +594,7 @@ function calcBurnedCalories(date) {
   let total = 0;
   workouts.forEach(ex => {
     const met = EXERCISE_MET[ex.name] || 4.0;
-    const sets = ex.sets ? Math.max(ex.sets.filter(s => s.reps > 0).length, ex.sets.length, 1) : 1;
+    const sets = Math.max(ex.sets.filter(s => s.reps > 0).length, ex.sets.length, 1);
     total += met * bw * (sets * MINS_PER_SET / 60);
   });
   return Math.round(total);
@@ -687,7 +617,7 @@ function renderDashboard() {
   const workoutsToday = DB.getWorkouts(td);
   const burnedCals = calcBurnedCalories(td);
   const netCals = todayCals - burnedCals;
-  const totalSets = workoutsToday.reduce((s, w) => s + (w.sets ? w.sets.length : 0), 0);
+  const totalSets = workoutsToday.reduce((s, w) => s + w.sets.length, 0);
   const name = settings.name ? `、${settings.name}さん` : '';
   const lastRecord = records.length ? fmtDate(records[0].date) : '未記録';
 
@@ -824,14 +754,12 @@ function renderDashboard() {
           ${workoutsToday.map(w => `
             <div style="background:linear-gradient(135deg,#f0fdfa,#ccfbf1)" class="rounded-xl p-3">
               <div class="text-sm font-bold text-teal-700">${escHtml(w.name)}</div>
-              <div class="text-xs text-teal-500 mt-1 font-medium">${w.sets ? w.sets.length : 0}セット実施</div>
-              ${w.sets && w.sets.length > 0 ? `<div class="text-xs text-teal-400 mt-0.5">最大 ${Math.max(...w.sets.map(s=>s.weight||0))}kg × ${w.sets[0].reps}回</div>` : ''}
+              <div class="text-xs text-teal-500 mt-1 font-medium">${w.sets.length}セット実施</div>
+              ${w.sets.length > 0 ? `<div class="text-xs text-teal-400 mt-0.5">最大 ${Math.max(...w.sets.map(s=>s.weight||0))}kg × ${w.sets[0].reps}回</div>` : ''}
             </div>
           `).join('')}
         </div>
       </div>` : ''}
-
-      ${(()=>{try{return renderBadgeCard();}catch(e){console.error('badge error',e);return '';}})()}
 
       <!-- Quick Actions -->
       <div class="card p-5">
@@ -1027,7 +955,6 @@ function saveBodyRecord(e) {
     note: document.getElementById('b-note').value
   });
   showToast('体重を記録しました！');
-  checkBadges();
   renderBody();
 }
 
@@ -1056,12 +983,10 @@ function deleteBodyRecord(date) {
 // MEALS
 // ============================================================
 let activeMealTab = 'breakfast';
-let _mealDate = '';
 
 function renderMeals() {
   const td = today();
   const mealDate = window._mealDate || td;
-  _mealDate = mealDate;
   const mealData = DB.getMeals(mealDate);
 
   document.getElementById('page-content').innerHTML = `
@@ -1100,7 +1025,7 @@ function renderMeals() {
       </div>
 
       <!-- Meal Tabs -->
-      <div class="card overflow-hidden" id="meal-swipe-area">
+      <div class="card overflow-hidden">
         <div class="flex gap-1.5 p-2 bg-gray-50/80">
           ${['breakfast','lunch','dinner'].map(t => {
             const tabIcons = { breakfast: icon('sunrise',16), lunch: icon('sun',16), dinner: icon('moon',16) };
@@ -1120,23 +1045,6 @@ function renderMeals() {
     </div><!-- /page -->
   `;
   renderMealTab(mealDate);
-  initMealSwipe();
-}
-
-function initMealSwipe() {
-  const el = document.getElementById('meal-swipe-area');
-  if (!el) return;
-  const order = ['breakfast','lunch','dinner'];
-  let sx = 0, sy = 0;
-  el.addEventListener('touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
-  el.addEventListener('touchend', e => {
-    const dx = e.changedTouches[0].clientX - sx;
-    const dy = e.changedTouches[0].clientY - sy;
-    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
-    const cur = order.indexOf(activeMealTab);
-    const next = dx < 0 ? Math.min(cur + 1, 2) : Math.max(cur - 1, 0);
-    if (next !== cur) { haptic(10); switchMealTab(order[next], _mealDate); }
-  }, { passive: true });
 }
 
 function switchMealTab(type, date) {
@@ -1171,12 +1079,8 @@ function renderMealTab(date, mealData) {
         `).join('')}
       </div>
 
-      <!-- Add Item Form (mobile: bottom sheet button) -->
-      <button class="md:hidden w-full btn-primary text-white py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 mt-2"
-        onclick="openMealAddSheet('${date}','${type}')">
-        ${icon('plus',16)} 食品を追加する
-      </button>
-      <div class="hidden md:block border-t border-gray-100 pt-4 space-y-2.5" id="meal-add-form-inline">
+      <!-- Add Item Form -->
+      <div class="border-t border-gray-100 pt-4 space-y-2.5">
 
         <!-- Search Tabs -->
         <div class="flex gap-1 p-1 bg-gray-100 rounded-2xl">
@@ -1252,7 +1156,7 @@ function renderMealTab(date, mealData) {
             `<button onclick="quickAddFood('${n}',${c})" class="text-xs bg-gray-100 hover:bg-rose-50 hover:text-rose-600 text-gray-600 px-2.5 py-1 rounded-full transition">${n}</button>`
           ).join('')}
         </div>
-      </div><!-- /meal-add-form-inline -->
+      </div>
     </div>
   `;
   loadFoodDBs();
@@ -1479,59 +1383,7 @@ function addMealItem(date, type) {
   mealData[type] = [...(mealData[type] || []), { name, calories: cal }];
   DB.saveMeal(date, type, mealData[type]);
   showToast(`${name}を追加しました！`);
-  checkBadges();
   renderMeals();
-}
-
-function openMealAddSheet(date, type) {
-  const names = {breakfast:'朝食', lunch:'昼食', dinner:'夕食'};
-  const fsActiveClass = 'flex-1 text-xs font-bold py-1.5 rounded-xl transition pop-tab-active-rose';
-  const fsInactiveClass = 'flex-1 text-xs font-bold py-1.5 rounded-xl transition text-gray-500 hover:bg-white/60';
-  openBottomSheet(`
-    <div class="px-5 pb-4">
-      <div class="flex gap-1 p-1 bg-gray-100 rounded-2xl mb-3">
-        <button id="fs-tab-foods" onclick="switchFoodSearchTab('foods')" class="${_foodSearchTab==='foods'?fsActiveClass:fsInactiveClass}">${icon('scale',12)} 単発食材</button>
-        <button id="fs-tab-recipes" onclick="switchFoodSearchTab('recipes')" class="${_foodSearchTab==='recipes'?fsActiveClass:fsInactiveClass}">${icon('utensils',12)} 料理・自炊</button>
-      </div>
-      <div class="relative mb-3" id="food-search-wrapper">
-        <div class="relative flex items-center">
-          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none">${icon('search',14)}</span>
-          <input type="text" id="meal-name" placeholder="食品名を入力して検索…" oninput="onFoodSearchInput(this.value)" onfocus="onFoodSearchInput(this.value)" onblur="setTimeout(()=>document.getElementById('food-dropdown')?.classList.add('hidden'),160)" autocomplete="off"
-            class="w-full pl-9 pr-8 border border-gray-200 rounded-xl py-2.5 text-sm focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100 transition">
-          <button id="food-clear-btn" onmousedown="event.preventDefault()" onclick="clearFoodSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 p-0.5 rounded-full hover:bg-gray-100 transition">${icon('x',13)}</button>
-        </div>
-        <div id="food-db-loading" class="hidden text-center py-3 text-xs text-gray-400"><span class="inline-block animate-spin mr-1">◌</span> データ読み込み中...</div>
-        <div id="food-dropdown" class="hidden absolute left-0 right-0 top-full mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50">
-          <div id="food-dropdown-inner" class="max-h-48 overflow-y-auto divide-y divide-gray-50"></div>
-        </div>
-      </div>
-      <div id="food-qty-row" class="hidden p-3.5 rounded-2xl mb-3" style="background:linear-gradient(135deg,#fff1f2,#fecdd3)">
-        <div class="flex items-center gap-2 mb-2.5">
-          <span id="food-selected-name" class="text-sm font-bold text-rose-800 truncate flex-1"></span>
-          <span id="food-selected-cat" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-white/80 text-rose-600 flex-shrink-0"></span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="text-xs font-medium text-rose-600 whitespace-nowrap">量を調整</span>
-          <input type="number" id="food-qty" value="1" min="0.1" step="0.1" oninput="recalcFoodCal()" class="w-16 border border-rose-200 rounded-lg px-2 py-1.5 text-sm text-center bg-white font-semibold focus:outline-none focus:border-rose-400">
-          <span id="food-unit-label" class="text-xs text-rose-500 flex-1 truncate"></span>
-          <span class="text-sm font-black text-rose-700 whitespace-nowrap" id="food-cal-preview"></span>
-        </div>
-      </div>
-      <div class="flex gap-2 items-center mb-2">
-        <div class="relative flex-1">
-          <input type="number" id="meal-cal" placeholder="kcal" oninput="this.dataset.aiSet='false';document.getElementById('cal-ai-badge')?.classList.add('hidden');document.getElementById('cal-ai-note')?.classList.add('hidden')"
-            class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm transition focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100">
-          <span id="cal-spinner" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-rose-400 text-xs animate-spin select-none">◌</span>
-          <span id="cal-ai-badge" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-rose-400 text-xs select-none">✨</span>
-        </div>
-        <button onclick="addMealItem('${date}','${type}');closeBottomSheet()" class="btn-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap flex-shrink-0">${icon('plus',14,'inline')} 追加</button>
-      </div>
-      <p id="cal-ai-note" class="hidden text-xs text-rose-400 mb-2">✨ AIが推定したカロリーです（目安）。必要に応じて修正してください。</p>
-      <div class="flex flex-wrap gap-1.5">
-        ${[['白米（茶碗1杯）',252],['食パン1枚',158],['鶏むね肉100g',116],['サラダチキン',105],['プロテイン',120],['バナナ1本',86],['コーヒー(無糖)',5],['牛乳200ml',137]].map(([n,c])=>`<button onclick="quickAddFood('${n}',${c})" class="text-xs bg-gray-100 hover:bg-rose-50 hover:text-rose-600 text-gray-600 px-2.5 py-1 rounded-full transition">${n}</button>`).join('')}
-      </div>
-    </div>
-  `, `${names[type]}に食品を追加`);
 }
 
 function removeMealItem(idx, date, type) {
@@ -1755,7 +1607,6 @@ function addExercise(date) {
   DB.saveWorkout(date, workoutExercises);
   document.getElementById('ex-name').value = '';
   showToast(`${name}を追加しました！`);
-  checkBadges();
   renderWorkoutContent(date);
 }
 
@@ -2265,7 +2116,6 @@ function copyDataForAI() {
 
   const workoutLines = workouts.length
     ? workouts.map(w => {
-        if (!w.sets) return `  ${w.name}: ${w.note || ''}`;
         const bestSet = w.sets.reduce((b, s) => (s.weight || 0) > (b.weight || 0) ? s : b, {});
         return `  ${w.name}: ${w.sets.length}セット${bestSet.weight ? `（最大 ${bestSet.weight}kg × ${bestSet.reps}回）` : ''}`;
       }).join('\n')
@@ -2328,43 +2178,6 @@ function renderSettings() {
             <input type="number" id="s-target-cal" value="${s.targetCalories||2000}" placeholder="2000"
               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
           </div>
-        </div>
-      </div>
-
-      <!-- Color Theme -->
-      <div class="card p-6">
-        <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">${icon('settings',16,'text-indigo-500')} カラーテーマ</h3>
-        <div class="flex gap-3 flex-wrap">
-          ${[
-            ['indigo',  '#4f46e5', 'インディゴ'],
-            ['purple',  '#a855f7', 'パープル'],
-            ['rose',    '#e11d48', 'ローズ'],
-            ['emerald', '#059669', 'エメラルド'],
-            ['slate',   '#475569', 'スレート'],
-          ].map(([key, color, label]) => {
-            const cur = DB.get('theme') || 'indigo';
-            return `<button onclick="setTheme('${key}')" class="flex flex-col items-center gap-1.5" title="${label}">
-              <div class="w-10 h-10 rounded-full flex items-center justify-center border-4 ${cur===key?'border-gray-800':'border-transparent'} transition"
-                style="background:${color}">
-                ${cur===key ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
-              </div>
-              <span class="text-xs text-gray-500">${label}</span>
-            </button>`;
-          }).join('')}
-        </div>
-      </div>
-
-      <!-- Font Size -->
-      <div class="card p-6">
-        <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">${icon('sparkles',16,'text-slate-500')} 文字サイズ</h3>
-        <div class="flex gap-2">
-          ${[['小','14'],['標準','16'],['大','18'],['特大','20']].map(([label,size])=>`
-            <button onclick="setFontSize(${size})"
-              class="flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition
-                ${(DB.get('fontsize')||16)==${size} ? 'border-[var(--theme-pri)] text-[var(--theme-pri)] bg-indigo-50' : 'border-gray-200 text-gray-500 hover:border-gray-300'}">
-              ${label}
-            </button>
-          `).join('')}
         </div>
       </div>
 
@@ -2512,140 +2325,11 @@ function getCalorieChartData(days) {
 }
 
 // ============================================================
-// THEMES & FONT SIZE
-// ============================================================
-const THEMES = {
-  indigo:   { pri:'#4338ca', sec:'#4f46e5', drk:'#312e81', dkr:'#1e1b4b', sh:'rgba(67,56,202,0.30)',  sh2:'rgba(67,56,202,0.40)'  },
-  purple:   { pri:'#7c3aed', sec:'#a855f7', drk:'#4c1d95', dkr:'#2e1065', sh:'rgba(124,58,237,0.30)', sh2:'rgba(124,58,237,0.40)' },
-  rose:     { pri:'#be123c', sec:'#e11d48', drk:'#7f1d1d', dkr:'#450a0a', sh:'rgba(190,18,60,0.30)',  sh2:'rgba(190,18,60,0.40)'  },
-  emerald:  { pri:'#065f46', sec:'#059669', drk:'#022c22', dkr:'#011a15', sh:'rgba(6,95,70,0.30)',    sh2:'rgba(6,95,70,0.40)'    },
-  slate:    { pri:'#334155', sec:'#475569', drk:'#1e293b', dkr:'#0f172a', sh:'rgba(71,85,105,0.30)',  sh2:'rgba(71,85,105,0.40)'  },
-};
-
-function applyTheme(name) {
-  const t = THEMES[name] || THEMES.indigo;
-  const r = document.documentElement.style;
-  r.setProperty('--theme-pri', t.pri);
-  r.setProperty('--theme-sec', t.sec);
-  r.setProperty('--theme-drk', t.drk);
-  r.setProperty('--theme-dkr', t.dkr);
-  r.setProperty('--theme-sh',  t.sh);
-  r.setProperty('--theme-sh2', t.sh2);
-}
-
-function applyFontSize(size) {
-  document.documentElement.style.fontSize = size + 'px';
-}
-
-function setTheme(name) {
-  DB.set('theme', name);
-  applyTheme(name);
-  renderSettings();
-}
-
-function setFontSize(size) {
-  DB.set('fontsize', size);
-  applyFontSize(size);
-  renderSettings();
-}
-
-// ============================================================
-// BADGES
-// ============================================================
-const BADGE_DEFS = [
-  { id:'streak3',   emoji:'🔥', label:'3日連続',    desc:'体重を3日連続で記録' },
-  { id:'streak7',   emoji:'⚡', label:'7日連続',    desc:'体重を7日連続で記録' },
-  { id:'streak30',  emoji:'📅', label:'30日連続',   desc:'体重を30日連続で記録' },
-  { id:'workout10', emoji:'💪', label:'筋トレ10回', desc:'筋トレを10回記録' },
-  { id:'meal7',     emoji:'🥗', label:'食事7日',    desc:'食事を7日間記録' },
-  { id:'steps10k',  emoji:'👟', label:'1万歩',      desc:'1日10,000歩を達成' },
-  { id:'goalweight',emoji:'🎯', label:'目標達成',   desc:'目標体重を達成' },
-];
-
-function checkBadges() {
-  const earned = DB.get('badges') || {};
-  const newBadges = [];
-  const records = DB.getBodyRecords();
-  const settings = DB.getSettings();
-  const allWorkouts = DB.getAllWorkouts();
-  const allMeals = DB.getAllMeals();
-
-  // streak badges
-  const checkStreak = (n) => {
-    let streak = 0;
-    const dateSet = new Set(records.map(r => r.date));
-    let d = new Date();
-    while(true) {
-      const ds = d.toISOString().split('T')[0];
-      if (dateSet.has(ds)) { streak++; }
-      else break;
-      d.setDate(d.getDate()-1);
-    }
-    return streak >= n;
-  };
-  const earnBadge = (id) => {
-    if (!earned[id]) { earned[id] = today(); newBadges.push(id); }
-  };
-  if (checkStreak(3))  earnBadge('streak3');
-  if (checkStreak(7))  earnBadge('streak7');
-  if (checkStreak(30)) earnBadge('streak30');
-
-  // workout count
-  const workoutDays = Object.keys(allWorkouts).filter(d => allWorkouts[d].length > 0).length;
-  if (workoutDays >= 10) earnBadge('workout10');
-
-  // meal 7 days
-  const mealDays = Object.keys(allMeals).filter(d => {
-    const m = allMeals[d];
-    return (m.breakfast||[]).length+(m.lunch||[]).length+(m.dinner||[]).length > 0;
-  }).length;
-  if (mealDays >= 7) earnBadge('meal7');
-
-  // 10k steps
-  const stepsData = DB.get('steps') || {};
-  if (Object.values(stepsData).some(s => s >= 10000)) earnBadge('steps10k');
-
-  // goal weight
-  if (settings.targetWeight && records.length > 0) {
-    const latest = records[0].weight;
-    if (latest && Math.abs(latest - settings.targetWeight) <= 0.5) earnBadge('goalweight');
-  }
-
-  DB.set('badges', earned);
-  if (newBadges.length > 0) {
-    newBadges.forEach(id => {
-      const b = BADGE_DEFS.find(x => x.id === id);
-      if (b) setTimeout(() => showToast(`${b.emoji} バッジ獲得！ ${b.label}`, true), 500);
-    });
-  }
-  return earned;
-}
-
-function renderBadgeCard() {
-  const earned = DB.get('badges') || {};
-  return `
-    <div class="card p-5">
-      <h3 class="font-bold text-gray-700 mb-4 flex items-center gap-2">${icon('star',16,'text-yellow-500')} 実績バッジ</h3>
-      <div class="grid grid-cols-4 md:grid-cols-7 gap-3">
-        ${BADGE_DEFS.map(b => `
-          <div class="flex flex-col items-center gap-1 ${earned[b.id] ? '' : 'opacity-30 grayscale'}">
-            <div class="text-3xl">${b.emoji}</div>
-            <div class="text-xs font-bold text-gray-600 text-center leading-tight">${b.label}</div>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `;
-}
-
-// ============================================================
 // INIT
 // ============================================================
-try { applyTheme(DB.get('theme') || 'indigo'); } catch(e) { console.error('applyTheme error:', e); }
-try { applyFontSize(DB.get('fontsize') || 16); } catch(e) { console.error('applyFontSize error:', e); }
-try { checkBadges(); } catch(e) { console.error('checkBadges error:', e); }
 navigate('dashboard');
 loadFoodDBs(); // バックグラウンドで食品DBをプリロード
 </script>
 </body>
 </html>
+`;
