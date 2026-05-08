@@ -463,7 +463,17 @@ const DB = {
   getAllMeals() { return this.get('meals') || {}; },
   getWorkouts(date) { return (this.get('workouts') || {})[date] || []; },
   getAllWorkouts() { return this.get('workouts') || {}; },
-  getSettings() { return this.get('settings') || { apiKey: '', targetWeight: '', targetCalories: 2000, name: '' }; },
+  getSettings() {
+    const defaults = { apiKey: '', targetWeight: '', targetCalories: 2000, name: '', height: '', age: '', gender: 'male' };
+    const stored = this.get('settings');
+    return stored ? { ...defaults, ...stored } : defaults;
+  },
+  getSteps(date) { return (this.get('steps') || {})[date] || 0; },
+  saveSteps(date, steps) {
+    const all = this.get('steps') || {};
+    all[date] = steps;
+    this.set('steps', all);
+  },
   saveBodyRecord(record) {
     const records = this.getBodyRecords();
     const idx = records.findIndex(r => r.date === record.date);
@@ -586,7 +596,7 @@ const EXERCISE_MET = {
 // 1セットあたり: 実働45秒 + インターバル90秒 ≒ 2.25分
 const MINS_PER_SET = 2.25;
 
-function calcBurnedCalories(date) {
+function calcWorkoutCalories(date) {
   const workouts = DB.getWorkouts(date);
   if (!workouts.length) return 0;
   const records = DB.getBodyRecords();
@@ -594,10 +604,35 @@ function calcBurnedCalories(date) {
   let total = 0;
   workouts.forEach(ex => {
     const met = EXERCISE_MET[ex.name] || 4.0;
-    const sets = Math.max(ex.sets.filter(s => s.reps > 0).length, ex.sets.length, 1);
+    const sets = ex.sets ? Math.max(ex.sets.filter(s => s.reps > 0).length, ex.sets.length, 1) : 1;
     total += met * bw * (sets * MINS_PER_SET / 60);
   });
   return Math.round(total);
+}
+
+function calcStepCalories(date) {
+  const steps = DB.getSteps(date);
+  if (!steps) return 0;
+  const records = DB.getBodyRecords();
+  const bw = records.length && records[0].weight ? records[0].weight : 60;
+  return Math.round(steps * 0.035 * bw);
+}
+
+function calcBMR() {
+  const records = DB.getBodyRecords();
+  const s = DB.getSettings();
+  const weight = records.length && records[0].weight ? records[0].weight : null;
+  const height = parseFloat(s.height);
+  const age = parseFloat(s.age);
+  if (!weight || !height || !age) return null;
+  if (s.gender === 'female') {
+    return Math.round(447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age));
+  }
+  return Math.round(88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age));
+}
+
+function calcBurnedCalories(date) {
+  return calcWorkoutCalories(date) + calcStepCalories(date);
 }
 
 // ============================================================
@@ -615,9 +650,13 @@ function renderDashboard() {
   const targetCals = settings.targetCalories || 2000;
   const calPct = Math.min(100, Math.round((todayCals / targetCals) * 100));
   const workoutsToday = DB.getWorkouts(td);
-  const burnedCals = calcBurnedCalories(td);
-  const netCals = todayCals - burnedCals;
-  const totalSets = workoutsToday.reduce((s, w) => s + w.sets.length, 0);
+  const workoutCals = calcWorkoutCalories(td);
+  const stepCals = calcStepCalories(td);
+  const burnedCals = workoutCals + stepCals;
+  const bmr = calcBMR();
+  const netCals = todayCals - burnedCals - (bmr || 0);
+  const totalSets = workoutsToday.reduce((s, w) => s + (w.sets ? w.sets.length : 0), 0);
+  const todaySteps = DB.getSteps(td);
   const name = settings.name ? `、${settings.name}さん` : '';
   const lastRecord = records.length ? fmtDate(records[0].date) : '未記録';
 
@@ -672,9 +711,12 @@ function renderDashboard() {
             <span class="text-xs font-bold text-white/60 uppercase tracking-widest">消費</span>
             <span class="text-white/60">${icon('flame', 18)}</span>
           </div>
-          <div class="text-3xl font-black text-white leading-none">${burnedCals}<span class="text-sm font-medium text-white/60 ml-1">kcal</span></div>
-          <div class="text-xs mt-2 text-white/70 font-medium">
-            ${burnedCals > 0 ? `${workoutsToday.length}種目 · ${totalSets}セット` : '筋トレで計算'}
+          <div class="text-3xl font-black text-white leading-none">${(bmr||0)+burnedCals}<span class="text-sm font-medium text-white/60 ml-1">kcal</span></div>
+          <div class="text-xs mt-2 text-white/70 space-y-0.5">
+            ${bmr ? `<div class="text-white/60">基礎代謝 ${bmr.toLocaleString()}kcal</div>` : ''}
+            ${workoutCals > 0 ? `<div class="text-white/60">筋トレ ${workoutCals}kcal</div>` : ''}
+            ${stepCals > 0 ? `<div class="text-white/60">歩行 ${stepCals}kcal（${todaySteps.toLocaleString()}歩）</div>` : ''}
+            ${(bmr||0)+burnedCals === 0 ? `<div class="text-white/70 font-medium">記録すると計算</div>` : ''}
           </div>
         </div>
 
@@ -690,15 +732,23 @@ function renderDashboard() {
         </div>
 
         <div class="stat-card-pop ${netCals > 200 ? 'sc-surplus' : netCals < -200 ? 'sc-deficit' : 'sc-blue'}" onclick="navigate('meals')" style="cursor:pointer">
-          <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center justify-between mb-2">
             <span class="text-xs font-bold text-white/60 uppercase tracking-widest">収支</span>
             <span class="text-white/60">${icon('zap', 18)}</span>
           </div>
-          <div class="text-3xl font-black text-white leading-none">
-            ${netCals > 0 ? '+' : ''}${netCals}<span class="text-sm font-medium text-white/60 ml-1">kcal</span>
+          ${bmr ? `
+          <div class="text-xs text-white/70 mb-2 space-y-0.5">
+            <div class="flex justify-between gap-2"><span>摂取</span><span>${todayCals.toLocaleString()} kcal</span></div>
+            <div class="border-t border-white/20 my-1"></div>
+            <div class="flex justify-between gap-2"><span>基礎代謝</span><span>- ${bmr.toLocaleString()}</span></div>
+            ${workoutCals > 0 ? `<div class="flex justify-between gap-2"><span>筋トレ</span><span>- ${workoutCals}</span></div>` : ''}
+            ${stepCals > 0 ? `<div class="flex justify-between gap-2"><span>歩行</span><span>- ${stepCals}</span></div>` : ''}
+          </div>` : ''}
+          <div class="text-2xl font-black text-white leading-none">
+            ${netCals > 0 ? '+' : ''}${netCals.toLocaleString()}<span class="text-sm font-medium text-white/60 ml-1">kcal</span>
           </div>
-          <div class="text-xs mt-2 text-white/70 font-medium">
-            ${todayCals === 0 && burnedCals === 0 ? '記録すると表示' :
+          <div class="text-xs mt-1 text-white/70 font-medium">
+            ${todayCals === 0 && (bmr||0)+burnedCals === 0 ? '記録すると表示' :
               netCals > 200  ? '摂取超過' :
               netCals < -200 ? 'いい調子' : 'ほぼ均衡'}
           </div>
@@ -760,6 +810,22 @@ function renderDashboard() {
           `).join('')}
         </div>
       </div>` : ''}
+
+      <!-- 今日の歩数 -->
+      <div class="card p-5">
+        <h3 class="font-bold text-gray-700 mb-3 flex items-center gap-2">${icon('activity',16,'text-blue-500')} 今日の歩数</h3>
+        <div class="flex items-center gap-3">
+          <input type="number" id="steps-input" value="${todaySteps || ''}" placeholder="例: 8000" min="0"
+            oninput="updateStepsPreview()"
+            class="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition">
+          <button onclick="saveSteps('${td}')" class="btn-primary text-white px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap">
+            保存
+          </button>
+        </div>
+        <p id="steps-preview" class="text-xs text-blue-500 mt-2 font-medium">
+          ${todaySteps > 0 ? (() => { const records=DB.getBodyRecords(); const bw=records.length&&records[0].weight?records[0].weight:60; return `${todaySteps.toLocaleString()}歩 → 約${Math.round(todaySteps*0.035*bw)}kcal消費`; })() : '歩数を入力してください'}
+        </p>
+      </div>
 
       <!-- Quick Actions -->
       <div class="card p-5">
@@ -825,6 +891,29 @@ function renderDashboard() {
         }
       });
     });
+  }
+}
+
+function saveSteps(date) {
+  const input = document.getElementById('steps-input');
+  const steps = parseInt(input.value) || 0;
+  DB.saveSteps(date, steps);
+  showToast(`${steps.toLocaleString()}歩を保存しました！`);
+  renderDashboard();
+}
+
+function updateStepsPreview() {
+  const input = document.getElementById('steps-input');
+  const preview = document.getElementById('steps-preview');
+  if (!input || !preview) return;
+  const steps = parseInt(input.value) || 0;
+  if (steps > 0) {
+    const records = DB.getBodyRecords();
+    const bw = records.length && records[0].weight ? records[0].weight : 60;
+    const kcal = Math.round(steps * 0.035 * bw);
+    preview.textContent = `${steps.toLocaleString()}歩 → 約${kcal}kcal消費`;
+  } else {
+    preview.textContent = '歩数を入力してください';
   }
 }
 
@@ -2178,6 +2267,35 @@ function renderSettings() {
             <input type="number" id="s-target-cal" value="${s.targetCalories||2000}" placeholder="2000"
               class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
           </div>
+          <div class="grid grid-cols-3 gap-2">
+            <div>
+              <label class="text-xs font-medium text-gray-500 block mb-1">身長 (cm)</label>
+              <input type="number" id="s-height" value="${s.height||''}" placeholder="170"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-500 block mb-1">年齢</label>
+              <input type="number" id="s-age" value="${s.age||''}" placeholder="30"
+                class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-500 block mb-1">性別</label>
+              <select id="s-gender" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white">
+                <option value="male" ${s.gender !== 'female' ? 'selected' : ''}>男性</option>
+                <option value="female" ${s.gender === 'female' ? 'selected' : ''}>女性</option>
+              </select>
+            </div>
+          </div>
+          ${(()=>{
+            const records = DB.getBodyRecords();
+            const w = records.length && records[0].weight ? records[0].weight : null;
+            const h = parseFloat(s.height), a = parseFloat(s.age);
+            if (!w || !h || !a) return `<p class="text-xs text-gray-400">身長・年齢を設定すると基礎代謝（BMR）を自動計算します</p>`;
+            const bmrVal = s.gender === 'female'
+              ? Math.round(447.593 + 9.247*w + 3.098*h - 4.330*a)
+              : Math.round(88.362 + 13.397*w + 4.799*h - 5.677*a);
+            return `<p class="text-xs text-indigo-600 font-medium">現在の基礎代謝: ${bmrVal.toLocaleString()} kcal/日</p>`;
+          })()}
         </div>
       </div>
 
@@ -2236,7 +2354,10 @@ function saveSettings() {
     name: document.getElementById('s-name').value,
     targetWeight: parseFloat(document.getElementById('s-target-weight').value) || null,
     targetCalories: parseInt(document.getElementById('s-target-cal').value) || 2000,
-    apiKey: document.getElementById('s-api-key').value.trim()
+    apiKey: document.getElementById('s-api-key').value.trim(),
+    height: document.getElementById('s-height').value,
+    age: document.getElementById('s-age').value,
+    gender: document.getElementById('s-gender').value
   });
   showToast('設定を保存しました！');
 }
