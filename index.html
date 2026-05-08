@@ -664,7 +664,7 @@ function calcBurnedCalories(date) {
   let total = 0;
   workouts.forEach(ex => {
     const met = EXERCISE_MET[ex.name] || 4.0;
-    const sets = Math.max(ex.sets.filter(s => s.reps > 0).length, ex.sets.length, 1);
+    const sets = ex.sets ? Math.max(ex.sets.filter(s => s.reps > 0).length, ex.sets.length, 1) : 1;
     total += met * bw * (sets * MINS_PER_SET / 60);
   });
   return Math.round(total);
@@ -687,7 +687,7 @@ function renderDashboard() {
   const workoutsToday = DB.getWorkouts(td);
   const burnedCals = calcBurnedCalories(td);
   const netCals = todayCals - burnedCals;
-  const totalSets = workoutsToday.reduce((s, w) => s + w.sets.length, 0);
+  const totalSets = workoutsToday.reduce((s, w) => s + (w.sets ? w.sets.length : 0), 0);
   const name = settings.name ? `、${settings.name}さん` : '';
   const lastRecord = records.length ? fmtDate(records[0].date) : '未記録';
 
@@ -824,14 +824,14 @@ function renderDashboard() {
           ${workoutsToday.map(w => `
             <div style="background:linear-gradient(135deg,#f0fdfa,#ccfbf1)" class="rounded-xl p-3">
               <div class="text-sm font-bold text-teal-700">${escHtml(w.name)}</div>
-              <div class="text-xs text-teal-500 mt-1 font-medium">${w.sets.length}セット実施</div>
-              ${w.sets.length > 0 ? `<div class="text-xs text-teal-400 mt-0.5">最大 ${Math.max(...w.sets.map(s=>s.weight||0))}kg × ${w.sets[0].reps}回</div>` : ''}
+              <div class="text-xs text-teal-500 mt-1 font-medium">${w.sets ? w.sets.length : 0}セット実施</div>
+              ${w.sets && w.sets.length > 0 ? `<div class="text-xs text-teal-400 mt-0.5">最大 ${Math.max(...w.sets.map(s=>s.weight||0))}kg × ${w.sets[0].reps}回</div>` : ''}
             </div>
           `).join('')}
         </div>
       </div>` : ''}
 
-      ${renderBadgeCard()}
+      ${(()=>{try{return renderBadgeCard();}catch(e){console.error('badge error',e);return '';}})()}
 
       <!-- Quick Actions -->
       <div class="card p-5">
@@ -2265,6 +2265,7 @@ function copyDataForAI() {
 
   const workoutLines = workouts.length
     ? workouts.map(w => {
+        if (!w.sets) return `  ${w.name}: ${w.note || ''}`;
         const bestSet = w.sets.reduce((b, s) => (s.weight || 0) > (b.weight || 0) ? s : b, {});
         return `  ${w.name}: ${w.sets.length}セット${bestSet.weight ? `（最大 ${bestSet.weight}kg × ${bestSet.reps}回）` : ''}`;
       }).join('\n')
@@ -2640,13 +2641,11 @@ function renderBadgeCard() {
 // ============================================================
 // INIT
 // ============================================================
-// Apply saved theme and font size
-applyTheme(DB.get('theme') || 'indigo');
-applyFontSize(DB.get('fontsize') || 16);
-checkBadges();
+try { applyTheme(DB.get('theme') || 'indigo'); } catch(e) { console.error('applyTheme error:', e); }
+try { applyFontSize(DB.get('fontsize') || 16); } catch(e) { console.error('applyFontSize error:', e); }
+try { checkBadges(); } catch(e) { console.error('checkBadges error:', e); }
 navigate('dashboard');
 loadFoodDBs(); // バックグラウンドで食品DBをプリロード
 </script>
 </body>
 </html>
-`;
