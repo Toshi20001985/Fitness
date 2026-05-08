@@ -320,6 +320,7 @@
       z-index: 200;
     }
     #bs-overlay.open { display: block; }
+    #bs-backdrop { cursor: default; }
     #bs-sheet {
       position: absolute; bottom: 0; left: 0; right: 0;
       background: white;
@@ -329,8 +330,11 @@
       transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
       max-height: 90dvh;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      touch-action: pan-y;
     }
     #bs-overlay.open #bs-sheet { transform: translateY(0); }
+    #bs-sheet button, #bs-sheet a { touch-action: manipulation; }
   </style>
 </head>
 <body>
@@ -431,9 +435,10 @@
 
   <!-- Toast Notification -->
   <!-- Bottom Sheet -->
-  <div id="bs-overlay" onclick="if(event.target===this)closeBottomSheet()">
+  <div id="bs-overlay">
+    <div id="bs-backdrop" onclick="closeBottomSheet()" style="position:absolute;inset:0;"></div>
     <div id="bs-sheet">
-      <div style="display:flex;justify-content:center;padding:12px 0 4px">
+      <div id="bs-handle" style="display:flex;justify-content:center;padding:12px 0 4px;cursor:grab;">
         <div style="width:40px;height:4px;border-radius:99px;background:#d1d5db"></div>
       </div>
       <div id="bs-title" style="font-size:17px;font-weight:900;padding:4px 20px 12px;color:#1f2937"></div>
@@ -575,13 +580,31 @@ function openBottomSheet(contentHtml, title) {
   document.getElementById('bs-content').innerHTML = contentHtml;
   document.getElementById('bs-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
+  _initBottomSheetSwipe();
 }
 function closeBottomSheet() {
   const overlay = document.getElementById('bs-overlay');
+  const sheet = document.getElementById('bs-sheet');
   overlay.classList.remove('open');
   document.body.style.overflow = '';
-  // コンテンツはアニメーション完了後にクリア
+  if (sheet) sheet._swipeInited = false;
   setTimeout(() => { document.getElementById('bs-content').innerHTML = ''; }, 320);
+}
+function _initBottomSheetSwipe() {
+  const sheet = document.getElementById('bs-sheet');
+  if (!sheet || sheet._swipeInited) return;
+  sheet._swipeInited = true;
+  let startY = 0;
+  sheet.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) return;
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+  sheet.addEventListener('touchend', e => {
+    if (e.changedTouches.length !== 1) return;
+    const dy = e.changedTouches[0].clientY - startY;
+    // 最上部でかつ50px以上の下スワイプで閉じる
+    if (dy > 50 && sheet.scrollTop === 0) closeBottomSheet();
+  }, { passive: true });
 }
 function openMealAddSheet(date, type) {
   openBottomSheet(getMealAddFormHtml(date, type), '食品を追加');
