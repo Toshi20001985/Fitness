@@ -838,13 +838,28 @@ function renderDashboard() {
           <button onclick="navigate('workout')" class="text-xs text-indigo-500 font-semibold flex items-center gap-1">編集 ${icon('chevronRight',13)}</button>
         </div>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-          ${workoutsToday.map(w => `
+          ${workoutsToday.map(w => {
+            const ct = getCardioType(w.name);
+            let subLabel = '';
+            if (ct === 'running' || ct === 'bike') {
+              const totalMins = (w.intervals||[]).reduce((s,iv)=>s+(parseFloat(iv.time)||0),0);
+              subLabel = `${(w.intervals||[]).length}区間 · ${totalMins}分`;
+            } else if (ct === 'other-cardio') {
+              const p = parseCardioNote(w.note||'');
+              subLabel = `${p.sets}セット${p.reps ? ` · ${p.reps}回` : ''}`;
+            } else if (w.sets && w.sets.length > 0) {
+              subLabel = `${w.sets.length}セット実施`;
+            }
+            const detailLabel = (!ct && w.sets && w.sets.length > 0)
+              ? `最大 ${Math.max(...w.sets.map(s=>s.weight||0))}kg × ${w.sets[0].reps}回`
+              : '';
+            return `
             <div style="background:linear-gradient(135deg,#f0fdfa,#ccfbf1)" class="rounded-xl p-3">
               <div class="text-sm font-bold text-teal-700">${escHtml(w.name)}</div>
-              <div class="text-xs text-teal-500 mt-1 font-medium">${w.sets.length}セット実施</div>
-              ${w.sets.length > 0 ? `<div class="text-xs text-teal-400 mt-0.5">最大 ${Math.max(...w.sets.map(s=>s.weight||0))}kg × ${w.sets[0].reps}回</div>` : ''}
-            </div>
-          `).join('')}
+              <div class="text-xs text-teal-500 mt-1 font-medium">${subLabel}</div>
+              ${detailLabel ? `<div class="text-xs text-teal-400 mt-0.5">${detailLabel}</div>` : ''}
+            </div>`;
+          }).join('')}
         </div>
       </div>` : ''}
 
