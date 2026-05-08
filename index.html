@@ -53,10 +53,14 @@
     }
 
     /* ── Animations ── */
-    .page { animation: popIn 0.28s cubic-bezier(.34,1.56,.64,1); }
+    .page { animation: popIn 0.32s cubic-bezier(0.34, 1.56, 0.64, 1); }
     @keyframes popIn {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translateY(16px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes toastIn {
+      from { opacity: 0; transform: scale(0.85); }
+      to   { opacity: 1; transform: scale(1); }
     }
     .progress-bar { transition: width 0.6s cubic-bezier(.34,1.56,.64,1); }
     .ai-typing::after { content: '▋'; animation: blink 0.7s step-end infinite; }
@@ -432,7 +436,7 @@
   </div>
 
   <div id="toast" class="fixed top-4 right-4 z-50 hidden">
-    <div style="background:linear-gradient(135deg,#4338ca,#4f46e5)" class="text-white px-4 py-2.5 rounded-2xl text-sm shadow-lg flex items-center gap-2">
+    <div id="toast-inner" class="text-white px-4 py-2.5 rounded-2xl text-sm shadow-lg flex items-center gap-2">
       <span id="toast-icon">✓</span>
       <span id="toast-msg"></span>
     </div>
@@ -583,10 +587,19 @@ function openWorkoutAddSheet(date) {
 
 function showToast(msg, ok = true) {
   const t = document.getElementById('toast');
+  const inner = document.getElementById('toast-inner');
   document.getElementById('toast-msg').textContent = msg;
   document.getElementById('toast-icon').textContent = ok ? '✓' : '⚠';
+  inner.style.background = ok
+    ? 'linear-gradient(135deg,#15803d,#16a34a)'
+    : 'linear-gradient(135deg,#b91c1c,#dc2626)';
+  inner.style.animation = 'none';
   t.classList.remove('hidden');
-  setTimeout(() => t.classList.add('hidden'), 2500);
+  // リフロー強制後にアニメーション再適用
+  void inner.offsetWidth;
+  inner.style.animation = 'toastIn 0.25s cubic-bezier(0.34,1.56,0.64,1) forwards';
+  clearTimeout(t._hideTimer);
+  t._hideTimer = setTimeout(() => t.classList.add('hidden'), 2500);
 }
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
