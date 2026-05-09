@@ -771,7 +771,7 @@ function calcStepCalories(date) {
   if (!steps) return 0;
   const records = DB.getBodyRecords();
   const bw = records.length && records[0].weight ? records[0].weight : 60;
-  return Math.round(steps * 0.035 * bw);
+  return Math.round(steps * bw * 0.0003);
 }
 
 function calcBMR() {
@@ -1019,7 +1019,7 @@ function renderDashboard() {
           </button>
         </div>
         <p id="steps-preview" class="text-xs text-blue-500 mt-2 font-medium">
-          ${todaySteps > 0 ? (() => { const records=DB.getBodyRecords(); const bw=records.length&&records[0].weight?records[0].weight:60; return `${todaySteps.toLocaleString()}歩 → 約${Math.round(todaySteps*0.035*bw)}kcal消費`; })() : '歩数を入力してください'}
+          ${todaySteps > 0 ? (() => { const records=DB.getBodyRecords(); const bw=records.length&&records[0].weight?records[0].weight:60; return `${todaySteps.toLocaleString()}歩 → 約${Math.round(todaySteps*bw*0.0003)}kcal消費`; })() : '歩数を入力してください'}
         </p>
       </div>
 
@@ -1139,7 +1139,7 @@ function openStepsEditor(date) {
         保存
       </button>
       <p id="bs-steps-preview" class="text-xs text-blue-500 font-medium">
-        ${steps > 0 ? `${steps.toLocaleString()}歩 → 約${Math.round(steps*0.035*bw)}kcal消費` : '歩数を入力してください'}
+        ${steps > 0 ? `${steps.toLocaleString()}歩 → 約${Math.round(steps*bw*0.0003)}kcal消費` : '歩数を入力してください'}
       </p>
     </div>
   `, '歩数を編集');
@@ -1153,7 +1153,7 @@ function updateBsStepsPreview(date) {
   if (steps > 0) {
     const records = DB.getBodyRecords();
     const bw = records.length && records[0].weight ? records[0].weight : 60;
-    preview.textContent = `${steps.toLocaleString()}歩 → 約${Math.round(steps*0.035*bw)}kcal消費`;
+    preview.textContent = `${steps.toLocaleString()}歩 → 約${Math.round(steps*bw*0.0003)}kcal消費`;
   } else {
     preview.textContent = '歩数を入力してください';
   }
@@ -1176,7 +1176,7 @@ function updateStepsPreview() {
   if (steps > 0) {
     const records = DB.getBodyRecords();
     const bw = records.length && records[0].weight ? records[0].weight : 60;
-    const kcal = Math.round(steps * 0.035 * bw);
+    const kcal = Math.round(steps * bw * 0.0003);
     preview.textContent = `${steps.toLocaleString()}歩 → 約${kcal}kcal消費`;
   } else {
     preview.textContent = '歩数を入力してください';
@@ -2873,7 +2873,7 @@ function renderHistory() {
         const totalMealCal = ['breakfast','lunch','dinner'].reduce(
           (s, t) => s + (meals[t]||[]).reduce((a,i) => a+(Number(i.calories)||0), 0), 0);
         const totalWorkoutCal = workouts.reduce((s, ex) => s + calcExerciseCalories(ex, bw), 0);
-        const stepCal = steps ? Math.round(steps * 0.035 * bw) : 0;
+        const stepCal = steps ? Math.round(steps * bw * 0.0003) : 0;
         const mealTypeIcons = { breakfast:'🌅', lunch:'☀️', dinner:'🌙' };
         const mealTypeNames = { breakfast:'朝', lunch:'昼', dinner:'夕' };
 
