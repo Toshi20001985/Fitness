@@ -2842,6 +2842,7 @@ function renderHistory() {
   const allSteps    = DB.get('steps') || {};
   const bwRec       = DB.getBodyRecords();
   const bw          = bwRec.length && bwRec[0].weight ? bwRec[0].weight : 65;
+  const bmr         = calcBMR() || 0;
 
   // 記録のある全日付を収集
   const dateSet = new Set([
@@ -2907,13 +2908,19 @@ function renderHistory() {
             </div>
             <div class="text-right flex-shrink-0">
               ${hasMeal ? `<div class="text-sm font-black text-rose-500">${totalMealCal.toLocaleString()} <span class="text-xs font-medium text-gray-400">摂取kcal</span></div>` : ''}
-              ${hasWorkout || hasSteps ? `<div class="text-xs font-semibold text-teal-600">${(totalWorkoutCal + stepCal).toLocaleString()} kcal消費</div>` : ''}
+              ${(bmr || hasWorkout || hasSteps) ? `
+                <div class="text-xs font-semibold text-teal-600">${(bmr + totalWorkoutCal + stepCal).toLocaleString()} kcal消費</div>
+                <div class="text-xs text-gray-400 mt-0.5 space-y-0.5">
+                  ${bmr ? `<div>基礎代謝 ${bmr.toLocaleString()}</div>` : ''}
+                  ${totalWorkoutCal > 0 ? `<div>筋トレ ${totalWorkoutCal.toLocaleString()}</div>` : ''}
+                  ${stepCal > 0 ? `<div>歩行 ${stepCal.toLocaleString()}</div>` : ''}
+                </div>` : ''}
             </div>
           </div>
 
           ${mealSummary ? `<div class="flex flex-wrap gap-1.5 mb-2">${mealSummary}</div>` : ''}
           ${workoutSummary ? `<div class="flex flex-wrap gap-1.5 mb-2">${workoutSummary}</div>` : ''}
-          ${hasSteps ? `<div class="text-xs text-blue-500 font-semibold mb-2">${icon('activity',12,'inline')} ${steps.toLocaleString()}歩 · ${stepCal}kcal</div>` : ''}
+          ${hasSteps ? `<div class="text-xs text-blue-500 font-semibold mb-2">${icon('activity',12,'inline')} ${steps.toLocaleString()}歩</div>` : ''}
 
           <div class="flex gap-2 mt-3 pt-3 border-t border-gray-50">
             ${hasMeal ? `<button onclick="openMealsForDate('${date}')"
