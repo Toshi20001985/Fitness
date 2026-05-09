@@ -1131,15 +1131,13 @@ function openStepsEditor(date) {
   openBottomSheet(`
     <div class="p-1 space-y-4">
       <p class="text-sm text-gray-500 font-medium">${dateLabel}の歩数を編集</p>
-      <div class="flex items-center gap-3">
-        <input type="number" id="bs-steps-input" value="${steps || ''}" placeholder="例: 8000" min="0"
-          oninput="updateBsStepsPreview('${date}')"
-          class="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition">
-        <button onclick="saveBsSteps('${date}')"
-          class="btn-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap">
-          保存
-        </button>
-      </div>
+      <input type="number" id="bs-steps-input" value="${steps || ''}" placeholder="例: 8000" min="0"
+        oninput="updateBsStepsPreview('${date}')"
+        class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition">
+      <button onclick="saveBsSteps('${date}')"
+        class="btn-primary w-full text-white py-2.5 rounded-xl text-sm font-bold">
+        保存
+      </button>
       <p id="bs-steps-preview" class="text-xs text-blue-500 font-medium">
         ${steps > 0 ? `${steps.toLocaleString()}歩 → 約${Math.round(steps*0.035*bw)}kcal消費` : '歩数を入力してください'}
       </p>
