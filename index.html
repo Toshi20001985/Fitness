@@ -592,6 +592,76 @@ function totalCals(mealObj) {
     s + (mealObj[t] || []).reduce((a, i) => a + (Number(i.calories) || 0), 0), 0);
 }
 // ============================================================
+// NUMPAD
+// ============================================================
+function openNumpad(inputEl, label, opts) {
+  if (window.innerWidth > 768) return;
+  inputEl.blur();
+  const decimal = !opts || opts.decimal !== false;
+  let val = String(inputEl.value || '');
+
+  function npRender() {
+    const el = document.getElementById('np-display');
+    if (el) el.textContent = val === '' ? '0' : val;
+  }
+  window._npAppend = function(ch) {
+    if (ch === '.' && (!decimal || val.includes('.'))) return;
+    if (ch === '.' && val === '') { val = '0.'; npRender(); return; }
+    if ((val === '0' || val === '') && ch !== '.') { val = ch; npRender(); return; }
+    val += ch;
+    npRender();
+  };
+  window._npBack = function() {
+    val = val.slice(0, -1);
+    npRender();
+  };
+  window._npConfirm = function() {
+    const num = parseFloat(val);
+    inputEl.value = isNaN(num) ? '' : num;
+    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+    inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+    closeBottomSheet();
+  };
+
+  const btnBase = 'flex items-center justify-center rounded-2xl border text-2xl font-black active:scale-95 transition-transform select-none';
+  openBottomSheet(`
+    <div>
+      <div id="np-display"
+        style="font-size:2.8rem;font-weight:900;text-align:center;padding:16px 0 20px;border-bottom:1px solid #f3f4f6;margin-bottom:16px;min-height:76px;color:#1f2937;letter-spacing:-1px;">
+        ${val === '' ? '0' : val}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;">
+        ${['7','8','9','4','5','6','1','2','3'].map(n => `
+          <button onclick="window._npAppend('${n}')"
+            style="height:64px;background:#fff;border-color:#e5e7eb;color:#1f2937;"
+            class="${btnBase} border">
+            ${n}
+          </button>`).join('')}
+        <button onclick="window._npAppend('.')" ${!decimal ? 'disabled style="opacity:.3;"' : ''}
+          style="height:64px;background:#fff;border-color:#e5e7eb;color:#1f2937;"
+          class="${btnBase} border">
+          .
+        </button>
+        <button onclick="window._npAppend('0')"
+          style="height:64px;background:#fff;border-color:#e5e7eb;color:#1f2937;"
+          class="${btnBase} border">
+          0
+        </button>
+        <button onclick="window._npBack()"
+          style="height:64px;background:#f9fafb;border-color:#f3f4f6;color:#6b7280;"
+          class="${btnBase} border">
+          ←
+        </button>
+      </div>
+      <button onclick="window._npConfirm()"
+        class="btn-primary w-full font-black text-white rounded-2xl"
+        style="padding:16px 0;font-size:1.1rem;">
+        決定
+      </button>
+    </div>
+  `, label);
+}
+// ============================================================
 // BOTTOM SHEET
 // ============================================================
 function openBottomSheet(contentHtml, title) {
@@ -753,8 +823,15 @@ function calcExerciseCalories(ex, bw) {
     const sets = Math.max(parsed.sets, 1);
     return Math.round(met * bw * (sets * MINS_PER_SET / 60));
   } else {
-    const sets = ex.sets ? Math.max(ex.sets.filter(s => s.reps > 0).length, ex.sets.length, 1) : 1;
-    return Math.round(met * bw * (sets * MINS_PER_SET / 60));
+    const sets = ex.sets || [];
+    if (sets.length === 0) return Math.round(met * bw * (MINS_PER_SET / 60));
+    const total = sets.reduce((sum, s) => {
+      const w = parseFloat(s.weight);
+      const r = parseFloat(s.reps);
+      if (w > 0 && r > 0) return sum + (w * r * 0.1 / 7 * 1.05);
+      return sum + (met * bw * (2.25 / 60));
+    }, 0);
+    return Math.round(total);
   }
 }
 
@@ -1012,6 +1089,7 @@ function renderDashboard() {
         </div>
         <div class="flex items-center gap-3">
           <input type="number" id="steps-input" value="${todaySteps || ''}" placeholder="例: 8000" min="0"
+            inputmode="none" onclick="openNumpad(this,'歩数',{decimal:false})"
             oninput="updateStepsPreview()"
             class="flex-1 min-w-0 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition">
           <button onclick="saveStepsForDate()" class="btn-primary flex-shrink-0 text-white px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap">
@@ -1221,26 +1299,31 @@ function renderBody() {
             <div>
               <label class="text-xs font-medium text-gray-500 block mb-1">体重 (kg)</label>
               <input type="number" id="b-weight" step="0.1" placeholder="70.0" value="${todayRec.weight || ''}"
+                inputmode="none" onclick="openNumpad(this,'体重 (kg)',{decimal:true})"
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 ring-indigo-300">
             </div>
             <div>
               <label class="text-xs font-medium text-gray-500 block mb-1">体脂肪率 (%)</label>
               <input type="number" id="b-fat" step="0.1" placeholder="20.0" value="${todayRec.bodyFat || ''}"
+                inputmode="none" onclick="openNumpad(this,'体脂肪率 (%)',{decimal:true})"
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 ring-indigo-300">
             </div>
             <div>
               <label class="text-xs font-medium text-gray-500 block mb-1">ウエスト (cm)</label>
               <input type="number" id="b-waist" step="0.5" placeholder="80" value="${todayRec.waist || ''}"
+                inputmode="none" onclick="openNumpad(this,'ウエスト (cm)',{decimal:true})"
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 ring-indigo-300">
             </div>
             <div>
               <label class="text-xs font-medium text-gray-500 block mb-1">胸囲 (cm)</label>
               <input type="number" id="b-chest" step="0.5" placeholder="95" value="${todayRec.chest || ''}"
+                inputmode="none" onclick="openNumpad(this,'胸囲 (cm)',{decimal:true})"
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 ring-indigo-300">
             </div>
             <div>
               <label class="text-xs font-medium text-gray-500 block mb-1">腕囲 (cm)</label>
               <input type="number" id="b-arm" step="0.5" placeholder="35" value="${todayRec.arm || ''}"
+                inputmode="none" onclick="openNumpad(this,'腕囲 (cm)',{decimal:true})"
                 class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 ring-indigo-300">
             </div>
             <div class="col-span-2">
@@ -1487,6 +1570,7 @@ function getMealAddFormHtml(date, type) {
           <div class="flex items-center gap-2">
             <span class="text-xs font-medium text-rose-600 whitespace-nowrap">量を調整</span>
             <input type="number" id="food-qty" value="1" min="0.1" step="0.1"
+              inputmode="none" onclick="openNumpad(this,'量を調整',{decimal:true})"
               oninput="recalcFoodCal()"
               class="w-16 border border-rose-200 rounded-lg px-2 py-1.5 text-sm text-center bg-white font-semibold focus:outline-none focus:border-rose-400 focus:ring-1 focus:ring-rose-100">
             <span id="food-unit-label" class="text-xs text-rose-500 flex-1 truncate"></span>
@@ -1498,6 +1582,7 @@ function getMealAddFormHtml(date, type) {
         <div class="flex gap-2 items-center">
           <div class="relative flex-1">
             <input type="number" id="meal-cal" placeholder="kcal"
+              inputmode="none" onclick="openNumpad(this,'カロリー (kcal)',{decimal:false})"
               oninput="this.dataset.aiSet='false';document.getElementById('cal-ai-badge')?.classList.add('hidden');document.getElementById('cal-ai-note')?.classList.add('hidden')"
               class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm transition focus:outline-none focus:border-rose-300 focus:ring-2 focus:ring-rose-100">
             <span id="cal-spinner" class="hidden absolute right-2 top-1/2 -translate-y-1/2 text-rose-400 text-xs animate-spin select-none">◌</span>
@@ -1926,6 +2011,8 @@ function getWorkoutAddFormHtml(date) {
 
 function renderWorkoutContent(date) {
   const exercises = workoutExercises;
+  const _bwRec = DB.getBodyRecords();
+  const bw = _bwRec.length && _bwRec[0].weight ? _bwRec[0].weight : 65;
 
   document.getElementById('workout-content').innerHTML = `
     <!-- Exercises List -->
@@ -1952,12 +2039,15 @@ function renderWorkoutContent(date) {
               <div class="grid grid-cols-5 gap-1.5 items-center px-1 py-1 rounded-lg hover:bg-teal-50/50">
                 <span class="text-sm text-teal-600 font-bold">${si+1}</span>
                 <input type="number" value="${iv.speed||''}" step="0.5" min="0" placeholder="8.0"
+                  inputmode="none" onclick="openNumpad(this,'速度 (km/h)',{decimal:true})"
                   onchange="updateInterval(${ei},${si},'speed',this.value,'${date}')"
                   class="border border-teal-200 bg-teal-50/60 rounded-lg px-1.5 py-1.5 text-sm text-center font-semibold text-teal-800 focus:border-teal-400 focus:bg-white">
                 <input type="number" value="${iv.incline||''}" step="0.5" min="0" placeholder="0"
+                  inputmode="none" onclick="openNumpad(this,'傾斜 (%)',{decimal:true})"
                   onchange="updateInterval(${ei},${si},'incline',this.value,'${date}')"
                   class="border border-teal-200 bg-teal-50/60 rounded-lg px-1.5 py-1.5 text-sm text-center font-semibold text-teal-800 focus:border-teal-400 focus:bg-white">
                 <input type="number" value="${iv.time||''}" step="1" min="0" placeholder="30"
+                  inputmode="none" onclick="openNumpad(this,'時間 (分)',{decimal:false})"
                   onchange="updateInterval(${ei},${si},'time',this.value,'${date}')"
                   class="border border-teal-200 bg-teal-50/60 rounded-lg px-1.5 py-1.5 text-sm text-center font-semibold text-teal-800 focus:border-teal-400 focus:bg-white">
                 <button onclick="removeInterval(${ei},${si},'${date}')" class="text-teal-200 hover:text-red-400 p-1 justify-self-start transition-colors">${icon('x',14)}</button>
@@ -1977,12 +2067,15 @@ function renderWorkoutContent(date) {
               <div class="grid grid-cols-5 gap-1.5 items-center px-1 py-1 rounded-lg hover:bg-teal-50/50">
                 <span class="text-sm text-teal-600 font-bold">${si+1}</span>
                 <input type="number" value="${iv.speed||''}" step="0.5" min="0" placeholder="20.0"
+                  inputmode="none" onclick="openNumpad(this,'速度 (km/h)',{decimal:true})"
                   onchange="updateInterval(${ei},${si},'speed',this.value,'${date}')"
                   class="border border-teal-200 bg-teal-50/60 rounded-lg px-1.5 py-1.5 text-sm text-center font-semibold text-teal-800 focus:border-teal-400 focus:bg-white">
                 <input type="number" value="${iv.resistance||''}" step="1" min="0" placeholder="5"
+                  inputmode="none" onclick="openNumpad(this,'負荷',{decimal:false})"
                   onchange="updateInterval(${ei},${si},'resistance',this.value,'${date}')"
                   class="border border-teal-200 bg-teal-50/60 rounded-lg px-1.5 py-1.5 text-sm text-center font-semibold text-teal-800 focus:border-teal-400 focus:bg-white">
                 <input type="number" value="${iv.time||''}" step="1" min="0" placeholder="30"
+                  inputmode="none" onclick="openNumpad(this,'時間 (分)',{decimal:false})"
                   onchange="updateInterval(${ei},${si},'time',this.value,'${date}')"
                   class="border border-teal-200 bg-teal-50/60 rounded-lg px-1.5 py-1.5 text-sm text-center font-semibold text-teal-800 focus:border-teal-400 focus:bg-white">
                 <button onclick="removeInterval(${ei},${si},'${date}')" class="text-teal-200 hover:text-red-400 p-1 justify-self-start transition-colors">${icon('x',14)}</button>
@@ -2010,9 +2103,11 @@ function renderWorkoutContent(date) {
               <div class="grid grid-cols-4 gap-2 items-center px-1 py-1 rounded-lg hover:bg-teal-50/50 transition-colors">
                 <span class="text-sm text-teal-600 font-bold">S${si+1}</span>
                 <input type="number" value="${set.weight || ''}" step="2.5" min="0" placeholder="0"
+                  inputmode="none" onclick="openNumpad(this,'重量 (kg)',{decimal:true})"
                   onchange="updateSet(${ei},${si},'weight',this.value,'${date}')"
                   class="border border-teal-200 bg-teal-50/60 rounded-lg px-2 py-1.5 text-sm text-center font-semibold text-teal-800 focus:border-teal-400 focus:bg-white">
                 <input type="number" value="${set.reps || ''}" min="1" placeholder="10"
+                  inputmode="none" onclick="openNumpad(this,'回数',{decimal:false})"
                   onchange="updateSet(${ei},${si},'reps',this.value,'${date}')"
                   class="border border-teal-200 bg-teal-50/60 rounded-lg px-2 py-1.5 text-sm text-center font-semibold text-teal-800 focus:border-teal-400 focus:bg-white">
                 <button onclick="removeSet(${ei},${si},'${date}')" class="text-teal-200 hover:text-red-400 p-1 justify-self-start transition-colors">${icon('x',14)}</button>
@@ -2026,10 +2121,15 @@ function renderWorkoutContent(date) {
         return `
         <div class="card p-4">
           <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-3">
-              <div class="w-9 h-9 rounded-xl flex items-center justify-center" style="background:linear-gradient(135deg,#0f766e,#0d9488)">${icon('dumbbell',18,'text-white')}</div>
-              <h3 class="font-black text-gray-800">${escHtml(ex.name)}</h3>
-              <span class="text-xs font-bold px-2.5 py-1 rounded-full text-teal-700 bg-teal-50">${setsLabel}</span>
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center" style="background:linear-gradient(135deg,#0f766e,#0d9488)">${icon('dumbbell',18,'text-white')}</div>
+              <div class="min-w-0">
+                <h3 class="font-black text-gray-800 truncate">${escHtml(ex.name)}</h3>
+                <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  <span class="text-xs font-bold px-2 py-0.5 rounded-full text-teal-700 bg-teal-50">${setsLabel}</span>
+                  <span class="text-xs font-bold text-orange-500">${calcExerciseCalories(ex, bw)} kcal</span>
+                </div>
+              </div>
             </div>
             <button onclick="removeExercise(${ei},'${date}')" class="text-gray-300 hover:text-red-400 p-1 rounded-lg transition-colors">${icon('trash',16)}</button>
           </div>
