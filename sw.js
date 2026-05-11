@@ -1,5 +1,5 @@
 // キャッシュバージョン（GitHub Actionsが自動更新）
-const CACHE_VERSION = 'v20260511-numpad';
+const CACHE_VERSION = 'v20260511043301-numpad';
 const CACHE_NAME = `fittracker-${CACHE_VERSION}`;
 
 const PRECACHE_URLS = [
