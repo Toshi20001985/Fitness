@@ -1206,21 +1206,90 @@ function openStepsEditor(date) {
   const dt = new Date(date + 'T00:00:00');
   const weekDays = ['日','月','火','水','木','金','土'];
   const dateLabel = `${dt.getMonth()+1}月${dt.getDate()}日（${weekDays[dt.getDay()]}）`;
-  openBottomSheet(`
-    <div class="p-1 space-y-4">
-      <p class="text-sm text-gray-500 font-medium">${dateLabel}の歩数を編集</p>
-      <input type="number" id="bs-steps-input" value="${steps || ''}" placeholder="例: 8000" min="0"
-        oninput="updateBsStepsPreview('${date}')"
-        class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition">
-      <button onclick="saveBsSteps('${date}')"
-        class="btn-primary w-full text-white py-2.5 rounded-xl text-sm font-bold">
-        保存
-      </button>
-      <p id="bs-steps-preview" class="text-xs text-blue-500 font-medium">
-        ${steps > 0 ? `${steps.toLocaleString()}歩 → 約${Math.round(steps*bw*0.0003)}kcal消費` : '歩数を入力してください'}
-      </p>
-    </div>
-  `, '歩数を編集');
+
+  const isMobile = window.innerWidth <= 768;
+  let bsVal = String(steps || '');
+
+  if (isMobile) {
+    // インラインナンバーパッド
+    window._bsNpAppend = function(ch) {
+      if (ch === '.' ) return; // 歩数は整数のみ
+      if ((bsVal === '0' || bsVal === '') && ch !== '.') { bsVal = ch; }
+      else { bsVal += ch; }
+      const el = document.getElementById('bs-np-display');
+      if (el) el.textContent = bsVal || '0';
+      _bsUpdatePreview();
+    };
+    window._bsNpBack = function() {
+      bsVal = bsVal.slice(0, -1);
+      const el = document.getElementById('bs-np-display');
+      if (el) el.textContent = bsVal || '0';
+      _bsUpdatePreview();
+    };
+    window._bsNpConfirm = function() {
+      const s = parseInt(bsVal) || 0;
+      DB.saveSteps(date, s);
+      closeBottomSheet();
+      showToast(`${s.toLocaleString()}歩を保存しました！`);
+      renderHistory();
+    };
+    function _bsUpdatePreview() {
+      const el = document.getElementById('bs-np-preview');
+      if (!el) return;
+      const s = parseInt(bsVal) || 0;
+      el.textContent = s > 0 ? `${s.toLocaleString()}歩 → 約${Math.round(s*bw*0.0003)}kcal消費` : '歩数を入力してください';
+    }
+
+    const btnBase = 'flex items-center justify-center rounded-2xl border text-2xl font-black active:scale-95 transition-transform select-none';
+    openBottomSheet(`
+      <div>
+        <p class="text-sm text-gray-400 font-medium mb-2">${dateLabel}</p>
+        <div id="bs-np-display"
+          style="font-size:2.8rem;font-weight:900;text-align:center;padding:12px 0 16px;border-bottom:1px solid #f3f4f6;margin-bottom:14px;min-height:72px;color:#1f2937;letter-spacing:-1px;">
+          ${bsVal || '0'}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;">
+          ${['7','8','9','4','5','6','1','2','3'].map(n => `
+            <button onclick="window._bsNpAppend('${n}')"
+              style="height:64px;background:#fff;border-color:#e5e7eb;color:#1f2937;"
+              class="${btnBase} border">${n}</button>`).join('')}
+          <button style="height:64px;background:#f9fafb;border-color:#f3f4f6;color:#d1d5db;opacity:.4;" disabled
+            class="${btnBase} border">.</button>
+          <button onclick="window._bsNpAppend('0')"
+            style="height:64px;background:#fff;border-color:#e5e7eb;color:#1f2937;"
+            class="${btnBase} border">0</button>
+          <button onclick="window._bsNpBack()"
+            style="height:64px;background:#f9fafb;border-color:#f3f4f6;color:#6b7280;"
+            class="${btnBase} border">←</button>
+        </div>
+        <button onclick="window._bsNpConfirm()"
+          class="btn-primary w-full font-black text-white rounded-2xl"
+          style="padding:16px 0;font-size:1.1rem;">
+          保存
+        </button>
+        <p id="bs-np-preview" class="text-xs text-blue-500 font-medium text-center mt-3">
+          ${steps > 0 ? `${steps.toLocaleString()}歩 → 約${Math.round(steps*bw*0.0003)}kcal消費` : '歩数を入力してください'}
+        </p>
+      </div>
+    `, '歩数を編集');
+  } else {
+    // デスクトップ: 従来の入力
+    openBottomSheet(`
+      <div class="p-1 space-y-4">
+        <p class="text-sm text-gray-500 font-medium">${dateLabel}の歩数を編集</p>
+        <input type="number" id="bs-steps-input" value="${steps || ''}" placeholder="例: 8000" min="0"
+          oninput="updateBsStepsPreview('${date}')"
+          class="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-blue-300 focus:ring-2 focus:ring-blue-100 transition">
+        <button onclick="saveBsSteps('${date}')"
+          class="btn-primary w-full text-white py-2.5 rounded-xl text-sm font-bold">
+          保存
+        </button>
+        <p id="bs-steps-preview" class="text-xs text-blue-500 font-medium">
+          ${steps > 0 ? `${steps.toLocaleString()}歩 → 約${Math.round(steps*bw*0.0003)}kcal消費` : '歩数を入力してください'}
+        </p>
+      </div>
+    `, '歩数を編集');
+  }
 }
 
 function updateBsStepsPreview(date) {
