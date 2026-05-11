@@ -600,6 +600,13 @@ function openNumpad(inputEl, label, opts) {
   const decimal = !opts || opts.decimal !== false;
   let val = String(inputEl.value || '');
 
+  // ボトムシートが既に開いている場合はコンテンツを保存して後で復元する
+  const bsOverlay = document.getElementById('bs-overlay');
+  const isNested = bsOverlay && bsOverlay.classList.contains('open');
+  const prevTitle   = isNested ? document.getElementById('bs-title').textContent : null;
+  const prevContent = isNested ? document.getElementById('bs-content').innerHTML  : null;
+  const inputId     = inputEl.id || null;
+
   function npRender() {
     const el = document.getElementById('np-display');
     if (el) el.textContent = val === '' ? '0' : val;
@@ -617,10 +624,23 @@ function openNumpad(inputEl, label, opts) {
   };
   window._npConfirm = function() {
     const num = parseFloat(val);
-    inputEl.value = isNaN(num) ? '' : num;
-    inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-    inputEl.dispatchEvent(new Event('change', { bubbles: true }));
-    closeBottomSheet();
+    const finalVal = isNaN(num) ? '' : String(num);
+    if (isNested && prevContent !== null) {
+      // 元のボトムシートを復元してから値を反映
+      document.getElementById('bs-title').textContent = prevTitle;
+      document.getElementById('bs-content').innerHTML = prevContent;
+      const target = inputId ? document.getElementById(inputId) : null;
+      if (target) {
+        target.value = finalVal;
+        target.dispatchEvent(new Event('input', { bubbles: true }));
+        target.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    } else {
+      inputEl.value = finalVal;
+      inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+      inputEl.dispatchEvent(new Event('change', { bubbles: true }));
+      closeBottomSheet();
+    }
   };
 
   const btnBase = 'flex items-center justify-center rounded-2xl border text-2xl font-black active:scale-95 transition-transform select-none';
